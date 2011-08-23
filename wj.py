@@ -1,27 +1,41 @@
 #!/usr/bin/python
 
+# imports
+# =======
+
 from optparse import OptionParser
 import os
 import pickle
 import sys
 import time
 
-# Globals
+# globals
 # =======
 
 _yearMessages = None
 _yearLoaded = None
+_verbose = True
 
-# Public functions
+# public functions
 # ================
 
 def handleArgs(args):
   parser = OptionParser()
   parser.add_option("-o", action="store", type="string",
-                    dest="outfile")
+                    dest="outfile",
+                    help="generate a tex file with recent messages")
+  parser.add_option("-t", dest="userTimeMark",
+                    help="add a message for the specified time unit")
+  parser.add_option("-r", dest="showRecent",
+                    action="store_true",
+                    help="show recent messages")
   # TODO add options
   (options, args) = parser.parse_args(args)
   print "args=", args
+  if options.showRecent:
+    print "showing recent messages"
+    showRecentMessages()
+    exit()
   if len(args) > 1:
     msg = ' '.join(args[1:])
   else:
@@ -54,7 +68,16 @@ def getMessage():
 def currentDefaultTimeMark(scope="day"):
   return _7dateForTime()
 
-# Private functions
+def showRecentMessages():
+  global _yearMessages
+  # TODO show only the most recent ones
+  # for now I'll just print out everything
+  tm = time.localtime()
+  # TODO also load previous year if needed
+  _loadYear(`tm.tm_year`)
+  print "_yearMessages=\n", _yearMessages
+
+# private functions
 # =================
 
 def _timeForMark(timeMark):
@@ -88,19 +111,20 @@ def _yearFromTimeMark(timeMark):
   print "_yearFromTimeMark(%s)" % `timeMark`
   return timeMark.split(".")[-1]
 
-def _setMessage(msg, timeMark, verbose=True):
+def _setMessage(msg, timeMark):
   global _yearMessages
   global _yearLoaded
-  print "_setMessage(%s, %s, %s)" % (`msg`, `timeMark`, `verbose`)
+  global _verbose
+  print "_setMessage(%s, %s)" % (`msg`, `timeMark`)
   year = _yearFromTimeMark(timeMark)
   if _yearLoaded != year:
     _loadYear(year)
   print "just after year loaded verification, _yearMessages=%s" % `_yearMessages`
-  if verbose and timeMark in _yearMessages:
+  if _verbose and timeMark in _yearMessages:
     print "replaced"
     print "%s %s" % (timeMark, _yearMessages[timeMark])
     print "with"
-  elif verbose:
+  elif _verbose:
     print "set"
   _yearMessages[timeMark] = msg
   _saveMessages()
