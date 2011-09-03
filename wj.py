@@ -91,17 +91,19 @@ def getMessage():
 # be in the set [dwmy].
 def currentDefaultTimeMark(scope="d"):
   timeMark = _7dateForTime()
+  timeMarkChars = list(timeMark)
   dotIndex = timeMark.find('.')
   if scope == "d":
     pass
   elif scope == "w":
-    timeMark[dotIndex - 1] = '-'
+    timeMarkChars[dotIndex - 1] = '-'
   elif scope == "m":
-    timeMark[(dotIndex - 2):dotIndex] = '--'
+    timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
   elif scope == "y":
-    timeMark = timeMark[(dotIndex + 1):]
+    timeMarkChars = timeMarkChars[(dotIndex + 1):]
   else:
     raise Exception("Expected {day,week,month,year} input to currentDefaultTimeMark")
+  timeMark = ''.join(timeMarkChars)
   return timeMark
 
 
