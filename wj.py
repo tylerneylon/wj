@@ -44,6 +44,13 @@ def handleArgs(args):
   else:
     runInteractive()
 
+# A timeMark is a string representing a time period we know about.
+# It can be in one of these formats:
+# 123.2011  day
+# 12-.2011  week
+# 1--.2011  month
+# 2011      year
+
 def addMessage(msg, timeMark=None):
   print "addMessage(%s)" % msg
   print "what is the timeMark?"
@@ -61,8 +68,19 @@ def runInteractive():
   print "Work Journal (wj)"
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [o]utput; [h]elp."
   print "What would you like to do? [dwmyoh]"
-  x = _getch()
-  print "got", x
+  actionChar = _getch()
+  messageChars = ['d', 'w', 'm', 'y']
+  if actionChar in messageChars:
+    timeMark = currentDefaultTimeMark(scope=actionChar)
+    msg = raw_input("Enter message for %s: " % timeMark)
+    pass
+  elif actionChar == 'o':
+    pass
+  elif actionChar == 'h':
+    pass
+  else:
+    # TODO add error-handling for unhandled characters
+    pass
 
 # Open an editor to get the latest message.
 def getMessage():
@@ -70,9 +88,22 @@ def getMessage():
 
 # Returns the string for the current
 # time mark.  The scope is expected to
-# be in the set {day, week, month, year}.
-def currentDefaultTimeMark(scope="day"):
-  return _7dateForTime()
+# be in the set [dwmy].
+def currentDefaultTimeMark(scope="d"):
+  timeMark = _7dateForTime()
+  dotIndex = timeMark.find('.')
+  if scope == "d":
+    pass
+  elif scope == "w":
+    timeMark[dotIndex - 1] = '-'
+  elif scope == "m":
+    timeMark[(dotIndex - 2):dotIndex] = '--'
+  elif scope == "y":
+    timeMark = timeMark[(dotIndex + 1):]
+  else:
+    raise Exception("Expected {day,week,month,year} input to currentDefaultTimeMark")
+  return timeMark
+
 
 def showRecentMessages():
   global _yearMessages
