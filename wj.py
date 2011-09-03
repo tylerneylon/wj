@@ -3,10 +3,12 @@
 # imports
 # =======
 
+import fcntl
 from optparse import OptionParser
 import os
 import pickle
 import sys
+import termios
 import time
 
 # globals
@@ -38,9 +40,9 @@ def handleArgs(args):
     exit()
   if len(args) > 1:
     msg = ' '.join(args[1:])
+    addMessage(msg)
   else:
-    msg = getMessage()
-  addMessage(msg)
+    runInteractive()
 
 def addMessage(msg, timeMark=None):
   print "addMessage(%s)" % msg
@@ -56,7 +58,11 @@ def makeOutput(filename, timeMark=None):
   pass
 
 def runInteractive():
-  pass
+  print "Work Journal (wj)"
+  print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [o]utput; [h]elp."
+  print "What would you like to do? [dwmyoh]"
+  x = _getch()
+  print "got", x
 
 # Open an editor to get the latest message.
 def getMessage():
@@ -161,6 +167,31 @@ def _fileForYear(year):
 def _wjDir():
   homeDir = os.path.expanduser('~') + '/'
   return homeDir + ".wj/"
+
+# utility functions
+# =================
+
+def _getch():
+  fd = sys.stdin.fileno()
+
+  oldterm = termios.tcgetattr(fd)
+  newattr = termios.tcgetattr(fd)
+  newattr[3] = newattr[3] & ~termios.ICANON & ~termios.ECHO
+  termios.tcsetattr(fd, termios.TCSANOW, newattr)
+
+  oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
+  fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
+
+  try:        
+    while 1:            
+      try:
+        c = sys.stdin.read(1)
+        break
+      except IOError: pass
+  finally:
+    termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
+    fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
+  return c
 
 # Main
 # ====
