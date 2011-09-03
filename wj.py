@@ -73,7 +73,7 @@ def runInteractive():
   if actionChar in messageChars:
     timeMark = currentDefaultTimeMark(scope=actionChar)
     msg = raw_input("Enter message for %s: " % timeMark)
-    pass
+    addMessage(msg, timeMark)
   elif actionChar == 'o':
     pass
   elif actionChar == 'h':
@@ -90,21 +90,15 @@ def getMessage():
 # time mark.  The scope is expected to
 # be in the set [dwmy].
 def currentDefaultTimeMark(scope="d"):
-  timeMark = _7dateForTime()
-  timeMarkChars = list(timeMark)
-  dotIndex = timeMark.find('.')
-  if scope == "d":
-    pass
-  elif scope == "w":
-    timeMarkChars[dotIndex - 1] = '-'
-  elif scope == "m":
-    timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
-  elif scope == "y":
-    timeMarkChars = timeMarkChars[(dotIndex + 1):]
-  else:
-    raise Exception("Expected {day,week,month,year} input to currentDefaultTimeMark")
-  timeMark = ''.join(timeMarkChars)
-  return timeMark
+  hour = 60 * 60
+  day = 24 * hour
+  scopes = list('dwmy')
+  timeDeltas = [12 * hour, 2.5 * day, 4 * day, 10 * day]
+  if not scope in scopes:
+    raise Exception("Expected one of [dmwy] input to currentDefaultTimeMark")
+  timestamp = time.time() - timeDeltas[scopes.index(scope)]
+  timeMark = _7dateForTime(timestamp)
+  return _fromDayToScope(timeMark, scope)
 
 
 def showRecentMessages():
@@ -118,6 +112,21 @@ def showRecentMessages():
 
 # private functions
 # =================
+
+def _fromDayToScope(timeMark, scope="d"):
+  timeMarkChars = list(timeMark)
+  dotIndex = timeMark.find('.')
+  if scope == "d":
+    pass
+  elif scope == "w":
+    timeMarkChars[dotIndex - 1] = '-'
+  elif scope == "m":
+    timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
+  elif scope == "y":
+    timeMarkChars = timeMarkChars[(dotIndex + 1):]
+  else:
+    raise Exception("Expected one of [dmwy] input to _fromDayToScope")
+  return ''.join(timeMarkChars)
 
 def _timeForMark(timeMark):
   pass
