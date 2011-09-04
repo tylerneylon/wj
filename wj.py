@@ -3,10 +3,13 @@
 # imports
 # =======
 
+import calendar
+import datetime
 import fcntl
 from optparse import OptionParser
 import os
 import pickle
+import re
 import sys
 import termios
 import time
@@ -66,7 +69,7 @@ def makeOutput(filename, timeMark=None):
 
 def runInteractive():
   print "Work Journal (wj)"
-  print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [o]utput; [h]elp."
+  print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; specify [t]ime; [o]utput; [h]elp."
   print "What would you like to do? [dwmyoh]"
   actionChar = _getch()
   messageChars = ['d', 'w', 'm', 'y']
@@ -74,6 +77,12 @@ def runInteractive():
     timeMark = currentDefaultTimeMark(scope=actionChar)
     msg = raw_input("Enter message for %s: " % timeMark)
     addMessage(msg, timeMark)
+  elif actionChar == 't':
+    print "Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), 2025 (year)"
+    print "Today is %s" % _7dateForTime()
+    timeMark = raw_input("Enter timemark: ")
+    timestamp = _timestampForMark(timeMark)
+    # TODO HERE it could be None if it didn't parse
   elif actionChar == 'o':
     pass
   elif actionChar == 'h':
@@ -128,8 +137,30 @@ def _fromDayToScope(timeMark, scope="d"):
     raise Exception("Expected one of [dmwy] input to _fromDayToScope")
   return ''.join(timeMarkChars)
 
-def _timeForMark(timeMark):
-  pass
+def _timestampForMark(timeMark):
+  tm = time.struct_time([2001, 1, 1, 0, 0, 0, 0, 1, 0])
+  hour = 60 * 60
+  if re.match(r"\d+$", timeMark):
+    # year
+    year = int(timeMark)
+    date = datetime.date(year, 1, 1)
+    ts = calendar.timegm(date.timetuple())
+    return ts - 9 * hour
+  elif re.match(r"\d+\.\d+$", timeMark):
+    # day
+    ts = _timestampFor7date(timeMark)
+    return ts + 12 * hour
+  elif re.match(r"\d+-\.\d+$", timeMark):
+    # week
+    timeMark = timeMark.replace('-', '6')
+    ts = _timestampFor7date(timeMark)
+    return ts + 13 * hour
+  elif re.match(r"\d+--\.\d+$", timeMark):
+    # month
+    timeMark = timeMark.replace('-', '6')
+    ts = _timestampFor7date(timeMark)
+    return ts + 14 * hour
+  return None
 
 # Returns a 7date string for the given timestamp,
 # which is seconds-since-epoch (compatible with
@@ -139,6 +170,16 @@ def _7dateForTime(timestamp=None):
     timestamp = time.time()
   tm = time.localtime(timestamp)
   return "%s.%d" % (_baseNString(7, tm.tm_yday - 1), tm.tm_year)
+
+# The inverse of _7dateForTime.
+# Returns the timestamp for midnight at the start of the date,
+# which is the first second within that date.
+def _timestampFor7date(sevenDate):
+  m = re.match(r"(\d+)\.(\d+)", sevenDate)
+  date = datetime.date(int(m.group(2)), 1, 1)
+  numDays = _intFromBaseNString(7, m.group(1))
+  date += datetime.timedelta(days=numDays)
+  return calendar.timegm(date.timetuple())
 
 # Returns the base n string representation of i.
 # This assumes i >= 0 and n > 1, both integers.
@@ -154,6 +195,15 @@ def _baseNString(n, i):
   while len(reverseDigits):
     s += `reverseDigits.pop()`
   return s
+
+# Complement to _baseNString.
+def _intFromBaseNString(n, str):
+  val = 0
+  while len(str):
+    val *= n
+    val += (ord(str[0]) - ord('0'))
+    str = str[1:]
+  return val
 
 def _yearFromTimeMark(timeMark):
   print "_yearFromTimeMark(%s)" % `timeMark`
