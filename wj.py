@@ -70,7 +70,7 @@ def makeOutput(filename, timeMark=None):
 def runInteractive():
   print "Work Journal (wj)"
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; specify [t]ime; [o]utput; [h]elp."
-  print "What would you like to do? [dwmyoh]"
+  print "What would you like to do? [dwmytoh]"
   actionChar = _getch()
   messageChars = ['d', 'w', 'm', 'y']
   if actionChar in messageChars:
@@ -78,11 +78,8 @@ def runInteractive():
     msg = raw_input("Enter message for %s: " % timeMark)
     addMessage(msg, timeMark)
   elif actionChar == 't':
-    print "Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), 2025 (year)"
     print "Today is %s" % _7dateForTime()
-    timeMark = raw_input("Enter timemark: ")
-    timestamp = _timestampForMark(timeMark)
-    # TODO HERE it could be None if it didn't parse
+    _getUserTimeMarkAndMessage()
   elif actionChar == 'o':
     pass
   elif actionChar == 'h':
@@ -121,6 +118,17 @@ def showRecentMessages():
 
 # private functions
 # =================
+
+def _getUserTimeMarkAndMessage():
+  timestamp = None
+  while timestamp is None:
+    print "Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), 2025 (year)"
+    timeMark = raw_input("Enter timemark: ")
+    timestamp = _timestampForMark(timeMark)
+    if timestamp is None:
+      print "Couldn't parse that timemark."
+  msg = raw_input("Enter message for %s: " % timeMark)
+  addMessage(msg, timeMark)
 
 def _fromDayToScope(timeMark, scope="d"):
   timeMarkChars = list(timeMark)
