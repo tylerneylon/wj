@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# TODO NEXT
+# [ ] Add suggestions for recent missing entries.
+# [ ] Make sure we can handle w,m,y actions.
+
 # imports
 # =======
 
@@ -69,11 +73,12 @@ def makeOutput(filename, timeMark=None):
 
 def runInteractive():
   print "Work Journal (wj)"
-  print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; specify [t]ime; [o]utput; [h]elp."
-  print "What would you like to do? [dwmytoh]"
+  print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; specify [t]ime; [o]utput; [h]elp; [q]uit."
+  print "What would you like to do? [dwmytohq]"
   actionChar = _getch()
   messageChars = ['d', 'w', 'm', 'y']
   if actionChar in messageChars:
+    print "Today is %s" % _7dateForTime()
     timeMark = currentDefaultTimeMark(scope=actionChar)
     msg = raw_input("Enter message for %s: " % timeMark)
     addMessage(msg, timeMark)
@@ -84,6 +89,8 @@ def runInteractive():
     pass
   elif actionChar == 'h':
     pass
+  elif actionChar == 'q':
+    print "Goodbye"
   else:
     # TODO add error-handling for unhandled characters
     pass
