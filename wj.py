@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # TODO NEXT
+# [x] List recent entries on interactive startup.
 # [ ] Add suggestions for recent missing entries.
 # [ ] Make sure we can handle w,m,y actions.
 
@@ -40,9 +41,7 @@ def handleArgs(args):
                     help="show recent messages")
   # TODO add options
   (options, args) = parser.parse_args(args)
-  print "args=", args
   if options.showRecent:
-    print "showing recent messages"
     showRecentMessages()
     exit()
   if len(args) > 1:
@@ -73,6 +72,7 @@ def makeOutput(filename, timeMark=None):
 
 def runInteractive():
   print "Work Journal (wj)"
+  showRecentMessages()
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; specify [t]ime; [o]utput; [h]elp; [q]uit."
   print "What would you like to do? [dwmytohq]"
   actionChar = _getch()
@@ -113,7 +113,6 @@ def currentDefaultTimeMark(scope="d"):
   timeMark = _7dateForTime(timestamp)
   return _fromDayToScope(timeMark, scope)
 
-
 def showRecentMessages():
   global _yearMessages
   # TODO show only the most recent ones
@@ -121,7 +120,12 @@ def showRecentMessages():
   tm = time.localtime()
   # TODO also load previous year if needed
   _loadYear(`tm.tm_year`)
-  print "_yearMessages=\n", _yearMessages
+  print "Recent messages:"
+  timeMarks = sorted(_yearMessages, key=_timestampForMark)
+  timeMarks = timeMarks[-8:] # Just keep the most recent 8.
+  for timeMark in timeMarks:
+    print "%10s %s" % (timeMark, _yearMessages[timeMark])
+  #print "_yearMessages=\n", _yearMessages
 
 # private functions
 # =================
@@ -246,18 +250,14 @@ def _setMessage(msg, timeMark):
 def _loadYear(year):
   global _yearMessages
   global _yearLoaded
-  print "_loadYear(%s)" % `year`
   filename = _fileForYear(year)
   _yearLoaded = year
   if not os.path.isfile(filename):
-    print "setting to empty dict"
     _yearMessages = {}
   else:
-    print "attempting to load from file"
     file = open(filename, 'r')
     _yearMessages = pickle.load(file)
     file.close()
-  print "at end of _loadYear,_yearMessages=%s" % `_yearMessages`
 
 def _saveMessages():
   global _yearMessages
