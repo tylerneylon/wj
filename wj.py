@@ -71,6 +71,8 @@ def makeOutput(filename, timeMark=None):
   pass
 
 def runInteractive():
+  # TEMP TODO remove.  This next line is for debugging only.
+  print "Recent time marks: %s" % `_recentTimeMarks(8)`
   print "Work Journal (wj)"
   showRecentMessages()
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; specify [t]ime; [o]utput; [h]elp; [q]uit."
@@ -162,7 +164,7 @@ def _timestampForMark(timeMark):
   if re.match(r"\d+$", timeMark):
     # year
     year = int(timeMark)
-    date = datetime.date(year, 1, 1)
+    date = datetime.date(year + 1, 1, 1)
     ts = calendar.timegm(date.timetuple())
     return ts - 9 * hour
   elif re.match(r"\d+\.\d+$", timeMark):
@@ -266,6 +268,16 @@ def _saveMessages():
   file = open(_fileForYear(_yearLoaded), 'w+')
   pickle.dump(_yearMessages, file, pickle.HIGHEST_PROTOCOL)
   file.close()
+
+# This returns a list of all possible recent time marks,
+# regardless of whether or not the user has any messages for them.
+def _recentTimeMarks(n):
+  timestamp = time.time()
+  oneDay = 24 * 60 * 60
+  markSet = set([_7dateForTime(timestamp - i * oneDay) for i in range(n)])
+  markSet |= set([_fromDayToScope(i, scope) for i in markSet for scope in ["w", "m", "y"]])
+  marks = sorted(markSet, key=_timestampForMark)
+  return [m for m in marks if _timestampForMark(m) < timestamp]
 
 # We expect year as a string.
 def _fileForYear(year):
