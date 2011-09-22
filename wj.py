@@ -71,10 +71,10 @@ def makeOutput(filename, timeMark=None):
   pass
 
 def runInteractive():
-  # TEMP TODO remove.  This next line is for debugging only.
-  print "Recent time marks: %s" % `_recentTimeMarks(8)`
   print "Work Journal (wj)"
   showRecentMessages()
+  showRecentMissingTimeMarks()
+  print "---------------------------------"
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; specify [t]ime; [o]utput; [h]elp; [q]uit."
   print "What would you like to do? [dwmytohq]"
   actionChar = _getch()
@@ -119,15 +119,31 @@ def showRecentMessages():
   global _yearMessages
   # TODO show only the most recent ones
   # for now I'll just print out everything
-  tm = time.localtime()
-  # TODO also load previous year if needed
-  _loadYear(`tm.tm_year`)
+  _loadYear()
   print "Recent messages:"
   timeMarks = sorted(_yearMessages, key=_timestampForMark)
   timeMarks = timeMarks[-8:] # Just keep the most recent 8.
   for timeMark in timeMarks:
     print "%10s %s" % (timeMark, _yearMessages[timeMark])
   #print "_yearMessages=\n", _yearMessages
+
+def showRecentMissingTimeMarks():
+  global _yearMessages
+  _loadYear()
+  allRecent = _recentTimeMarks(8)
+  msgRecent = sorted(_yearMessages, key=_timestampForMark)[-8:]
+  str = "Missing messages: "
+  numMarks = 0
+  for timeMark in allRecent:
+    if timeMark not in msgRecent:
+      if numMarks > 0: str += ", "
+      str += "%s" % timeMark
+      numMarks += 1
+      if timeMark == _7dateForTime(time.time()):
+        str += " (today)"
+      elif timeMark == _7dateForTime(time.time() - 24 * 60 * 60):
+        str += " (yesterday)"
+  if numMarks > 0: print str
 
 # private functions
 # =================
@@ -249,9 +265,11 @@ def _setMessage(msg, timeMark):
   _saveMessages()
   print "%s %s" % (timeMark, msg)
 
-def _loadYear(year):
+def _loadYear(year=None):
   global _yearMessages
   global _yearLoaded
+  # TODO also load previous year if needed
+  if year is None: year = str(time.localtime().tm_year)
   filename = _fileForYear(year)
   _yearLoaded = year
   if not os.path.isfile(filename):
