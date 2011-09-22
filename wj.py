@@ -2,7 +2,7 @@
 
 # TODO NEXT
 # [x] List recent entries on interactive startup.
-# [ ] Add suggestions for recent missing entries.
+# [x] Add suggestions for recent missing entries.
 # [ ] Make sure we can handle w,m,y actions.
 
 # imports
