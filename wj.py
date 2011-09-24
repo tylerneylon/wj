@@ -4,6 +4,7 @@
 # [x] List recent entries on interactive startup.
 # [x] Add suggestions for recent missing entries.
 # [ ] Make sure we can handle w,m,y actions.
+# [ ] Add an 'a' command in interactive mode to input all recent missing entries.
 
 # imports
 # =======
