@@ -3,8 +3,15 @@
 # TODO NEXT
 # [x] List recent entries on interactive startup.
 # [x] Add suggestions for recent missing entries.
-# [ ] Make sure we can handle w,m,y actions.
 # [ ] Add an 'a' command in interactive mode to input all recent missing entries.
+# [ ] Make sure we can handle w,m,y actions.
+# [ ] Allow the -r option to have an optional number of recent entries to show.
+
+# TODO Eventually
+# [ ] Provide output with -o option.
+# [ ] Make sure everything works from the command line (non-interactive).
+# [ ] Support configuration settings file in the .wj folder.
+# [ ] Support Gregorian dates.
 
 # imports
 # =======
@@ -76,8 +83,9 @@ def runInteractive():
   showRecentMessages()
   showRecentMissingTimeMarks()
   print "---------------------------------"
-  print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; specify [t]ime; [o]utput; [h]elp; [q]uit."
-  print "What would you like to do? [dwmytohq]"
+  print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing"
+  print "         specify [t]ime; [o]utput; [h]elp; [q]uit."
+  print "What would you like to do? [dwmyatohq]"
   actionChar = _getch()
   messageChars = ['d', 'w', 'm', 'y']
   if actionChar in messageChars:
@@ -88,6 +96,8 @@ def runInteractive():
   elif actionChar == 't':
     print "Today is %s" % _7dateForTime()
     _getUserTimeMarkAndMessage()
+  elif actionChar == 'a':
+    pass # TODO HERE
   elif actionChar == 'o':
     pass
   elif actionChar == 'h':
