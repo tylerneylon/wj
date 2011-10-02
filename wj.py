@@ -37,6 +37,12 @@ _verbose = True
 # public functions
 # ================
 
+# TODO Standardize what's public and what's not.
+#      The deciding factor is that anything they can
+#      do from the command line they should be able to
+#      very easily do in code as well; stuff that's not
+#      easy from the command line should be privite.
+
 def handleArgs(args):
   parser = OptionParser()
   parser.add_option("-o", action="store", type="string",
@@ -95,9 +101,9 @@ def runInteractive():
     addMessage(msg, timeMark)
   elif actionChar == 't':
     print "Today is %s" % _7dateForTime()
-    _getUserTimeMarkAndMessage()
+    getUserTimeMarkAndMessage()
   elif actionChar == 'a':
-    pass # TODO HERE
+    getAllRecentMissingMessages()
   elif actionChar == 'o':
     pass
   elif actionChar == 'h':
@@ -156,10 +162,17 @@ def showRecentMissingTimeMarks():
         str += " (yesterday)"
   if numMarks > 0: print str
 
-# private functions
-# =================
+def getAllRecentMissingMessages():
+  global _yearMessages
+  _loadYear()
+  allRecent = _recentTimeMarks(8)
+  msgRecent = sorted(_yearMessages, key=_timestampForMark)[-8:]
+  for timeMark in allRecent:
+    if timeMark not in msgRecent:
+      msg = raw_input("Enter message for %s: " % timeMark)
+      addMessage(msg, timeMark)
 
-def _getUserTimeMarkAndMessage():
+def getUserTimeMarkAndMessage():
   timestamp = None
   while timestamp is None:
     print "Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), 2025 (year)"
@@ -169,6 +182,9 @@ def _getUserTimeMarkAndMessage():
       print "Couldn't parse that timemark."
   msg = raw_input("Enter message for %s: " % timeMark)
   addMessage(msg, timeMark)
+
+# private functions
+# =================
 
 def _fromDayToScope(timeMark, scope="d"):
   timeMarkChars = list(timeMark)
