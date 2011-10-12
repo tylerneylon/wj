@@ -3,7 +3,7 @@
 # TODO NEXT
 # [x] List recent entries on interactive startup.
 # [x] Add suggestions for recent missing entries.
-# [ ] Add an 'a' command in interactive mode to input all recent missing entries.
+# [x] Add an 'a' command in interactive mode to input all recent missing entries.
 # [ ] Make sure we can handle w,m,y actions.
 # [ ] Allow the -r option to have an optional number of recent entries to show.
 
@@ -192,9 +192,15 @@ def _fromDayToScope(timeMark, scope="d"):
   if scope == "d":
     pass
   elif scope == "w":
-    timeMarkChars[dotIndex - 1] = '-'
+    if dotIndex > 1:
+      timeMarkChars[dotIndex - 1] = '-'
+    else:
+      timeMarkChars = list("0-.%s" % timeMark[dotIndex + 1:])
   elif scope == "m":
-    timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
+    if dotIndex > 2:
+      timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
+    else:
+      timeMarkChars = list("0--.%s" % timeMark[dotIndex + 1:])
   elif scope == "y":
     timeMarkChars = timeMarkChars[(dotIndex + 1):]
   else:
@@ -269,6 +275,8 @@ def _intFromBaseNString(n, str):
     str = str[1:]
   return val
 
+# TODO Replace calls to this w calls to _fromDayToScope;
+#      Then delete this.
 def _yearFromTimeMark(timeMark):
   print "_yearFromTimeMark(%s)" % `timeMark`
   return timeMark.split(".")[-1]
