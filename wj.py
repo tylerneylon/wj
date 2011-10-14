@@ -134,13 +134,12 @@ def currentDefaultTimeMark(scope="d"):
 
 def showRecentMessages():
   global _yearMessages
-  # TODO show only the most recent ones
-  # for now I'll just print out everything
   _loadYear()
   print "Recent messages:"
   timeMarks = sorted(_yearMessages, key=_timestampForMark)
   timeMarks = timeMarks[-8:] # Just keep the most recent 8.
   for timeMark in timeMarks:
+    #timeStr = time.asctime(time.gmtime(_timestampForMark(timeMark)))
     print "%10s %s" % (timeMark, _yearMessages[timeMark])
   #print "_yearMessages=\n", _yearMessages
 
@@ -208,7 +207,6 @@ def _fromDayToScope(timeMark, scope="d"):
   return ''.join(timeMarkChars)
 
 def _timestampForMark(timeMark):
-  tm = time.struct_time([2001, 1, 1, 0, 0, 0, 0, 1, 0])
   hour = 60 * 60
   if re.match(r"\d+$", timeMark):
     # year
@@ -222,12 +220,21 @@ def _timestampForMark(timeMark):
     return ts + 12 * hour
   elif re.match(r"\d+-\.\d+$", timeMark):
     # week
-    timeMark = timeMark.replace('-', '6')
+    lastDig = '6'
+    if timeMark[:3] == '103':
+      isLeap = calendar.isleap(int(timeMark[-4:]))
+      lastDig = '1' if isLeap else '0'
+    timeMark = timeMark.replace('-', lastDig)
     ts = _timestampFor7date(timeMark)
     return ts + 13 * hour
   elif re.match(r"\d+--\.\d+$", timeMark):
     # month
-    timeMark = timeMark.replace('-', '6')
+    if timeMark[:2] == '10':
+      isLeap = calendar.isleap(int(timeMark[-4:]))
+      lastDigs = '31' if isLeap else '30'
+      timeMark = timeMark.replace('--', lastDigs)
+    else:
+      timeMark = timeMark.replace('-', '6')
     ts = _timestampFor7date(timeMark)
     return ts + 14 * hour
   return None
