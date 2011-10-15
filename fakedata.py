@@ -20,6 +20,8 @@ def randomString():
 def outputStringForTimeMark(timeMark):
   wj._setMessage(randomString(), timeMark)
 
+wj._verbose = False
+
 # Confirm the user wants to do this.
 print "This will overwrite data in ~/.wj.  Are you sure?"
 confirmStr = raw_input("Type 'Yes' to continue ")

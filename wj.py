@@ -5,10 +5,10 @@
 # [x] Add suggestions for recent missing entries.
 # [x] Add an 'a' command in interactive mode to input all recent missing entries.
 # [ ] Make sure we can handle w,m,y actions.
-# [ ] Allow the -r option to have an optional number of recent entries to show.
+# [ ] Add a command-line way to view more than just -r entries.
 
 # TODO Eventually
-# [ ] Provide output with -o option.
+# [x] Provide output with -o option.
 # [ ] Make sure everything works from the command line (non-interactive).
 # [ ] Support configuration settings file in the .wj folder.
 # [ ] Support Gregorian dates.
@@ -58,6 +58,12 @@ def handleArgs(args):
   if options.showRecent:
     showRecentMessages()
     exit()
+  if options.outfile:
+    texString = texStringForYear()
+    f = open(options.outfile, 'w')
+    f.write(texString)
+    f.close()
+    exit()
   if len(args) > 1:
     msg = ' '.join(args[1:])
     addMessage(msg)
@@ -81,9 +87,6 @@ def addMessage(msg, timeMark=None):
     print "default timeMark given as %s" % `timeMark`
   _setMessage(msg, timeMark)
 
-def makeOutput(filename, timeMark=None):
-  pass
-
 def runInteractive():
   print "Work Journal (wj)"
   showRecentMessages()
@@ -105,7 +108,10 @@ def runInteractive():
   elif actionChar == 'a':
     getAllRecentMissingMessages()
   elif actionChar == 'o':
-    pass
+    # TODO Input a filename and save to that file.
+    # be sure to avoid code duplication with the
+    # command-line version
+    print texStringForYear()
   elif actionChar == 'h':
     pass
   elif actionChar == 'q':
@@ -182,8 +188,98 @@ def getUserTimeMarkAndMessage():
   msg = raw_input("Enter message for %s: " % timeMark)
   addMessage(msg, timeMark)
 
+def texStringForYear(year=None):
+  global _yearLoaded
+  _loadYear(year)
+  msg = _yearMessages[_yearLoaded] if _yearLoaded in _yearMessages else ""
+  strPieces = [texBegin % (int(_yearLoaded), msg)]
+  timeMarks = sorted(_yearMessages, key=_timestampForMark)
+  monthMarks = []
+  weekMarks = []
+  for timeMark in timeMarks:
+    scope = _scopeForMark(timeMark)
+    if scope == "w":
+      weekMarks.append(timeMark)
+    elif scope == "m":
+      monthMarks.append(timeMark)
+  for mark in monthMarks:
+    monthNum = int(mark[:mark.find('-')])
+    msg = _escForTex(_yearMessages[mark])
+    strPieces.append(texMonthLine % (monthNum, msg))
+  strPieces.append(texMiddle)
+  for mark in weekMarks:
+    weekNum = int(mark[:mark.find('-')])
+    msg = _escForTex(_yearMessages[mark])
+    strPieces.append(texMonthLine % (weekNum, msg))
+  strPieces.append(texEnd)
+  return '\n'.join(strPieces)
+
+# tex template strings
+# ====================
+
+# Combine these strings like this:
+#  texBegin % (year, yearMsg)
+#  texMonthLine % (num, msg) [n times]
+#  texMiddle
+#  texWeekLine % (num, msg) [n times]
+#  texEnd
+
+texBegin = """
+\\documentclass[11pt]{amsart}
+\\usepackage{multicol}
+
+\\pagestyle{empty}
+\\begin{document}
+\\thispagestyle{empty}
+
+\\centerline{\\LARGE\\bf %d}
+\\bigskip
+\\centerline{%s}
+
+\\vspace{1cm}
+
+\\centerline{\\Large Months}
+"""
+
+# Input is (monthNum, msg).
+texMonthLine = "{\\bf %d.}  %s\n"
+
+texMiddle = """
+\\bigskip
+\\centerline{\\Large Weeks}
+
+\\begin{multicols}{2}
+"""
+
+# Input is (weekNum, msg).
+texWeekLine = "{\\bf %d.} %s\n"
+
+texEnd = """
+\\end{multicols}
+
+\\end{document}
+"""
+
 # private functions
 # =================
+
+def _escForTex(str):
+  # It's important that we escape out backslashes first.
+  # Otherwise we might do something like "\{" -> "\\{" -> "\\\\{",
+  # which tex would translate back to "\\{", oops.
+  str = str.replace("\\", r"\\")
+  str = str.replace("&", r"\&")
+  str = str.replace("{", r"\{")
+  return str
+
+def _scopeForMark(timeMark):
+  scopeExpr = [[r"\d+$", "y"],
+               [r"\d+\.\d+$", "d"],
+               [r"\d+-\.\d+$", "w"],
+               [r"\d+--\.\d+$", "m"]]
+  for exp, scope in scopeExpr:
+    if re.match(exp, timeMark): return scope
+  return None
 
 def _fromDayToScope(timeMark, scope="d"):
   timeMarkChars = list(timeMark)
@@ -208,18 +304,16 @@ def _fromDayToScope(timeMark, scope="d"):
 
 def _timestampForMark(timeMark):
   hour = 60 * 60
-  if re.match(r"\d+$", timeMark):
-    # year
+  scope = _scopeForMark(timeMark)
+  if scope == "y":
     year = int(timeMark)
     date = datetime.date(year + 1, 1, 1)
     ts = calendar.timegm(date.timetuple())
     return ts - 9 * hour
-  elif re.match(r"\d+\.\d+$", timeMark):
-    # day
+  elif scope == "d":
     ts = _timestampFor7date(timeMark)
     return ts + 12 * hour
-  elif re.match(r"\d+-\.\d+$", timeMark):
-    # week
+  elif scope == "w":
     lastDig = '6'
     if timeMark[:3] == '103':
       isLeap = calendar.isleap(int(timeMark[-4:]))
@@ -227,8 +321,7 @@ def _timestampForMark(timeMark):
     timeMark = timeMark.replace('-', lastDig)
     ts = _timestampFor7date(timeMark)
     return ts + 13 * hour
-  elif re.match(r"\d+--\.\d+$", timeMark):
-    # month
+  elif scope == "m":
     if timeMark[:2] == '10':
       isLeap = calendar.isleap(int(timeMark[-4:]))
       lastDigs = '31' if isLeap else '30'
@@ -282,30 +375,25 @@ def _intFromBaseNString(n, str):
     str = str[1:]
   return val
 
-# TODO Replace calls to this w calls to _fromDayToScope;
-#      Then delete this.
 def _yearFromTimeMark(timeMark):
-  print "_yearFromTimeMark(%s)" % `timeMark`
   return timeMark.split(".")[-1]
 
 def _setMessage(msg, timeMark):
   global _yearMessages
   global _yearLoaded
   global _verbose
-  print "_setMessage(%s, %s)" % (`msg`, `timeMark`)
   year = _yearFromTimeMark(timeMark)
   if _yearLoaded != year:
     _loadYear(year)
-  print "just after year loaded verification, _yearMessages=%s" % `_yearMessages`
   if _verbose and timeMark in _yearMessages:
     print "replaced"
     print "%s %s" % (timeMark, _yearMessages[timeMark])
     print "with"
   elif _verbose:
     print "set"
+  if _verbose: print "%s %s" % (timeMark, msg)
   _yearMessages[timeMark] = msg
   _saveMessages()
-  print "%s %s" % (timeMark, msg)
 
 def _loadYear(year=None):
   global _yearMessages
