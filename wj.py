@@ -32,7 +32,7 @@ import time
 
 _yearMessages = None
 _yearLoaded = None
-_verbose = True
+_verbose = False
 
 # public functions
 # ================
@@ -78,13 +78,8 @@ def handleArgs(args):
 # 2011      year
 
 def addMessage(msg, timeMark=None):
-  print "addMessage(%s)" % msg
-  print "what is the timeMark?"
-  print _7dateForTime()
   if timeMark is None:
-    print "requesting default timeMark"
     timeMark = currentDefaultTimeMark()
-    print "default timeMark given as %s" % `timeMark`
   _setMessage(msg, timeMark)
 
 def runInteractive():
