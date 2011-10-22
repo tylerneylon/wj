@@ -53,10 +53,16 @@ def handleArgs(args):
   parser.add_option("-r", dest="showRecent",
                     action="store_true",
                     help="show recent messages")
+  parser.add_option("-l", dest="listAll",
+                    action="store_true",
+                    help="show all messages")
   # TODO add options
   (options, args) = parser.parse_args(args)
+  if options.listAll:
+    showMessages()  # TODO make this an option in interactive mode
+    exit()
   if options.showRecent:
-    showRecentMessages()
+    showMessages(8)
     exit()
   if options.outfile:
     texString = texStringForYear()
@@ -84,7 +90,8 @@ def addMessage(msg, timeMark=None):
 
 def runInteractive():
   print "Work Journal (wj)"
-  showRecentMessages()
+  print "Recent messages:"
+  showMessages(8)
   showRecentMissingTimeMarks()
   print "---------------------------------"
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing"
@@ -133,16 +140,14 @@ def currentDefaultTimeMark(scope="d"):
   timeMark = _7dateForTime(timestamp)
   return _fromDayToScope(timeMark, scope)
 
-def showRecentMessages():
+def showMessages(num=None):
   global _yearMessages
   _loadYear()
-  print "Recent messages:"
   timeMarks = sorted(_yearMessages, key=_timestampForMark)
-  timeMarks = timeMarks[-8:] # Just keep the most recent 8.
+  if num:
+    timeMarks = timeMarks[-num:] # Just keep the most recent num.
   for timeMark in timeMarks:
-    #timeStr = time.asctime(time.gmtime(_timestampForMark(timeMark)))
     print "%10s %s" % (timeMark, _yearMessages[timeMark])
-  #print "_yearMessages=\n", _yearMessages
 
 def showRecentMissingTimeMarks():
   global _yearMessages
