@@ -33,6 +33,9 @@ import time
 _yearMessages = None
 _yearLoaded = None
 _verbose = False
+# Possible values are '7date', 'Greg'
+# TODO Load this from a conf file, if it exists.
+_userTimeMode = '7date'
 
 # public functions
 # ================
@@ -272,6 +275,9 @@ def _escForTex(str):
   str = str.replace("{", r"\{")
   return str
 
+# This function can also be used as a
+# heuristic to see if a string looks
+# like a 7date.
 def _scopeForMark(timeMark):
   scopeExpr = [[r"\d+$", "y"],
                [r"\d+\.\d+$", "d"],
@@ -434,6 +440,95 @@ def _fileForYear(year):
 def _wjDir():
   homeDir = os.path.expanduser('~') + '/'
   return homeDir + ".wj/"
+
+# user time functions
+# ===================
+
+# We accept formats:
+# [x] Any valid timeMark.
+# [x] today
+# [x] yesterday
+# [x] n days ago
+# [x] last+ week = starts w most recently-done week.
+# [x] last month = most recently-done month.
+# [ ] <d_1> = dd/<m>/<y>, where <y> = yy or yyyy,
+#                               <m> = mm or MMM.
+# [ ] <d_2> = dd <m>,? <y>           MMM = Jan, Feb, etc.
+# [ ] <d> = <d_1> or <d_2>
+# [ ] <d> - <d>, interpreted as a week
+# [ ] dd[/ ][<m>] - dd[/ ]<m>[/ ]<y>, interpreted as a week
+# [ ] dd[/ ]<m> - dd[/ ][<m>][/ ]<y>
+# [ ] MMM dd[(st,nd,rd,th)],? - MMM dd[(st,nd,rd,th)],? <y>
+# [ ] <m>,? <y>
+# Note that yyyy is already a valid timeMark.
+# There is probably a better way to express all this.
+def _markFromUserTimeStr(userTimeStr):
+  dayTime = 60 * 60 * 24
+  weekTime = dayTime * 7
+  scope = _scopeForMark(userTimeStr)
+  if scope: return userTimeStr
+  if userTimeStr == 'today':
+    return _7dateForTime(time.time())
+  if userTimeStr == 'yesterday':
+    return _7dateForTime(time.time() - dayTime)
+  m = re.match(r"(\d+) days? ago", userTimeStr)
+  if m:
+    daysAgo = int(m.group(1))
+    return _7dateForTime(time.time() - daysAgo * dayTime)
+  m = re.match(r"((?:last )+)week", userTimeStr)
+  if m:
+    weeksAgo = len(m.group(1).split(' ')) - 1
+    nowForThisWeek = time.time() + 60 * 60 * 11
+    aDay = _7dateForTime(nowForThisWeek - weeksAgo * weekTime)
+    return _fromDayToScope(aDay, 'w')
+  if userTimeStr == 'last month':
+    nowForThisMonth = time.time() + 60 * 60 * 10
+    aDay = _7dateForTime(nowForThisMonth)
+    thisMonth = _fromDayToScope(aDay, 'm')
+    aMonth = thisMonth
+    prevTime = nowForThisMonth
+    while thisMonth == aMonth:
+      prevTime -= dayTime * 28  # Min month length.
+      aMonth = _fromDayToScope(_7dateForTime(prevTime), 'm')
+    return aMonth
+
+  pass
+# TODO eventually replace the above comments with a user-visible
+#      string that we can display in a help screen.
+
+def _gregDayStrFromTm(tm):
+  months = calendar.month_abbr
+  return "%s %d, %d" % (months[tm.tm_mon], tm.tm_mday, tm.tm_year)
+
+def _userTimeStrFromMark(timeMark):
+  global _userTimeMode
+  if _userTimeMode == '7date':
+    return timeMark
+  elif _userTimeMode == 'Greg':
+    scope = _scopeForMark(timeMark)
+    ts = _timestampForMark(timeMark)
+    tm = time.localtime(ts)
+    months = calendar.month_abbr
+    if scope == "d":
+      return _gregDayStrFromTm(tm)
+    elif scope == "w":
+      lastTm = time.localtime(ts + 60 * 60 * 24 * 6)
+      if tm.tm_year != lastTm.tm_year:
+        return "%s - %s" % (_gregDayFromTm(tm), _gregDayFromTm(lastTm))
+      elif tm.tm_mon != lastTm.tm_mon:
+        strArgs = (months[tm.tm_mon], tm.tm_mday, months[lastTm.tm_mon],
+                   lastTm.tm_mday, tm.tm_year)
+        return "%s %d - %s %d, %d" % strArgs
+      else:
+        return "%s %d - %d, %d" % (months[tm.tm_mon], tm.tm_mday,
+                                   lastTm.tm_mday, tm.tm_year)
+    elif scope == "m":
+      return "%s %d" % (months[tm.tm_mon], tm.tm_year)
+    # It's either a year or an error here.
+    return timeMark
+  else:
+    print "ruh roh: unrecognized userTimeMode %s" % _userTimeMode
+  return timeMark
 
 # utility functions
 # =================
