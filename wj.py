@@ -431,7 +431,8 @@ def _recentTimeMarks(n):
   markSet = set([_7dateForTime(timestamp - i * oneDay) for i in range(n)])
   markSet |= set([_fromDayToScope(i, scope) for i in markSet for scope in ["w", "m", "y"]])
   marks = sorted(markSet, key=_timestampForMark)
-  return [m for m in marks if _timestampForMark(m) < timestamp]
+  nonFutureMarks = [m for m in marks if _timestampForMark(m) < timestamp]
+  return nonFutureMarks[-8:]
 
 # We expect year as a string.
 def _fileForYear(year):
@@ -443,6 +444,7 @@ def _wjDir():
 
 # user time functions
 # ===================
+
 
 # We accept formats:
 # [x] Any valid timeMark.
@@ -459,9 +461,11 @@ def _wjDir():
 # [ ] dd[/ ][<m>] - dd[/ ]<m>[/ ]<y>, interpreted as a week
 # [ ] dd[/ ]<m> - dd[/ ][<m>][/ ]<y>
 # [ ] MMM dd[(st,nd,rd,th)],? - MMM dd[(st,nd,rd,th)],? <y>
-# [ ] <m>,? <y>
+# [x] <m>,? <y>
 # Note that yyyy is already a valid timeMark.
 # There is probably a better way to express all this.
+# TODO eventually replace the above comments with a user-visible
+#      string that we can display in a help screen.
 def _markFromUserTimeStr(userTimeStr):
   dayTime = 60 * 60 * 24
   weekTime = dayTime * 7
@@ -491,10 +495,20 @@ def _markFromUserTimeStr(userTimeStr):
       prevTime -= dayTime * 28  # Min month length.
       aMonth = _fromDayToScope(_7dateForTime(prevTime), 'm')
     return aMonth
-
-  pass
-# TODO eventually replace the above comments with a user-visible
-#      string that we can display in a help screen.
+  monthExp = r"(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*"
+  m = re.match(r"(%s|\d+),? (\d+)" % monthExp, userTimeStr)
+  if m:
+    monStr = m.group(1)
+    mon = int(monStr) if monStr.isdigit() else _monFromStr(m.group(2))
+    year = int(m.group(3))
+    tm = (year, mon, 15, 12, 00, 00, 0, 0, -1)
+    return _fromDayToScope(_7dateForTime(time.mktime(tm)), 'm')
+  return None # TEMP TODO HERE Probably start unit testing and then move down the checklist.
+  
+def _monFromStr(monStr):
+  monStrs = calendar.month_abbr
+  match = [i for i in enumerate(monStrs) if i[1].lower() == monStr.lower()]
+  return match[0][0] if match else None
 
 def _gregDayStrFromTm(tm):
   months = calendar.month_abbr
