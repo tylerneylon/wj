@@ -287,7 +287,11 @@ def _scopeForMark(timeMark):
     if re.match(exp, timeMark): return scope
   return None
 
-def _fromDayToScope(timeMark, scope="d"):
+def _fromDayToScope(timeMark, scope="d", inputMode=None):
+  global _userTimeMode
+  if inputMode and scope in ["w", "m"] and inputMode != _userTimeMode:
+    warn = "Warning: non-%s input provided while in %s mode"
+    print warn % (_userTimeMode, _userTimeMode)
   timeMarkChars = list(timeMark)
   dotIndex = timeMark.find('.')
   if scope == "d":
@@ -453,9 +457,9 @@ def _wjDir():
 # [x] n days ago
 # [x] last+ week = starts w most recently-done week.
 # [x] last month = most recently-done month.
-# [ ] <d_1> = dd/<m>/<y>, where <y> = yy or yyyy,
+# [ ] <d_1> = <m>/dd/<y>, where <y> = yy or yyyy,
 #                               <m> = mm or MMM.
-# [ ] <d_2> = dd <m>,? <y>           MMM = Jan, Feb, etc.
+# [ ] <d_2> = dd MMM,? <y>           MMM = Jan, Feb, etc.
 # [ ] <d> = <d_1> or <d_2>
 # [ ] <d> - <d>, interpreted as a week
 # [ ] dd[/ ][<m>] - dd[/ ]<m>[/ ]<y>, interpreted as a week
@@ -495,20 +499,44 @@ def _markFromUserTimeStr(userTimeStr):
       prevTime -= dayTime * 28  # Min month length.
       aMonth = _fromDayToScope(_7dateForTime(prevTime), 'm')
     return aMonth
-  monthExp = r"(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*"
-  m = re.match(r"(%s|\d+),? (\d+)" % monthExp, userTimeStr)
+  # monthExp gives back two groups - hand them to _monFromStrs
+  monthExp = r"((?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*|\d+)"
+  m = re.match(r"%s,? (\d+)" % monthExp, userTimeStr)
   if m:
-    monStr = m.group(1)
-    mon = int(monStr) if monStr.isdigit() else _monFromStr(m.group(2))
+    mon = _monFromStrs(m.group(1), m.group(2))
     year = int(m.group(3))
     tm = (year, mon, 15, 12, 00, 00, 0, 0, -1)
-    return _fromDayToScope(_7dateForTime(time.mktime(tm)), 'm')
-  return None # TEMP TODO HERE Probably start unit testing and then move down the checklist.
+    return _fromDayToScope(_7dateForTime(time.mktime(tm)), 'm', inputMode='Greg')
+  # TODO HERE and below; update to match the new d_1, d_2 syntaxes above (oops)
+  # dayExp gives back 4 groups - hand them to _dayFromStrs
+  dayExp = r"(\d+)[/ -]%s,?[/ -](\d+)" % monthExp
+  m = re.match(dayExp, userTimeStr)
+  if m:
+    ts = _dayFromStrs(m.group(1), m.group(2), m.group(3), m.group(4))
+    return _7dateForTime(ts)
+  return None
   
-def _monFromStr(monStr):
+def _monFromStrs(wholeMatch, firstLetters):
+  if wholeMatch.isdigit(): return int(wholeMatch)
   monStrs = calendar.month_abbr
-  match = [i for i in enumerate(monStrs) if i[1].lower() == monStr.lower()]
+  match = [i for i in enumerate(monStrs) if i[1].lower() == firstLetters.lower()]
   return match[0][0] if match else None
+
+# Returns a timestamp for noon on the given day,
+# or None if there's an error.  TODO check this is correct
+def _dayFromStrs(mday, mon1, mon2, year):
+  mday = int(mday)
+  if len(year) == 2:
+    tm = time.localtime()
+    year = (tm.tm_year // 100) * 100 + int(year)
+    # Interpret 95 as 1995 (not 2095) if it's 2013.
+    if year > tm.tm_year + 1:
+      year -= 100
+  else:
+    year = int(year)
+  mon = _monFromStrs(mon1, mon2)
+  if mon is None: return None
+  return time.mktime((year, mon, mday, 12, 0, 0, 0, 0, -1))
 
 def _gregDayStrFromTm(tm):
   months = calendar.month_abbr
