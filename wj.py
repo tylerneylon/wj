@@ -457,7 +457,7 @@ def _wjDir():
 # [x] n days ago
 # [x] last+ week = starts w most recently-done week.
 # [x] last month = most recently-done month.
-# [ ] <d_1> = <m>/dd/<y>, where <y> = yy or yyyy,
+# [x] <d_1> = <m>/dd/<y>, where <y> = yy or yyyy,
 #                               <m> = mm or MMM.
 # [ ] <d_2> = dd MMM,? <y>           MMM = Jan, Feb, etc.
 # [ ] <d> = <d_1> or <d_2>
@@ -508,24 +508,40 @@ def _markFromUserTimeStr(userTimeStr):
     tm = (year, mon, 15, 12, 00, 00, 0, 0, -1)
     return _fromDayToScope(_7dateForTime(time.mktime(tm)), 'm', inputMode='Greg')
   # TODO HERE and below; update to match the new d_1, d_2 syntaxes above (oops)
-  # dayExp gives back 4 groups - hand them to _dayFromStrs
-  dayExp = r"(\d+)[/ -]%s,?[/ -](\d+)" % monthExp
-  m = re.match(dayExp, userTimeStr)
+  dayExp1 = r"%s[/ -](\d+)[/ -](\d+)" % monthExp
+  m = re.match(dayExp1, userTimeStr)
   if m:
-    ts = _dayFromStrs(m.group(1), m.group(2), m.group(3), m.group(4))
+    ts = _day1FromMatch(m, 0)
+    if ts is None: return None
     return _7dateForTime(ts)
   return None
   
 def _monFromStrs(wholeMatch, firstLetters):
-  if wholeMatch.isdigit(): return int(wholeMatch)
+  if wholeMatch.isdigit():
+    mon = int(wholeMatch)
+    return mon if 0 < mon <= 12 else None
   monStrs = calendar.month_abbr
   match = [i for i in enumerate(monStrs) if i[1].lower() == firstLetters.lower()]
   return match[0][0] if match else None
 
 # Returns a timestamp for noon on the given day,
+# or None if there's an error.
+def _day1FromMatch(m, offset):
+  mon = _monFromStrs(m.group(1 + offset), m.group(2 + offset))
+  if mon is None: return None
+  mdayStr = m.group(3 + offset)
+  mday = int(mdayStr)
+  year = _yearFromStr(m.group(4 + offset))
+  lastMDay = calendar.monthrange(year, mon)[1]
+  if mday < 1 or mday > lastMDay: return None
+  return time.mktime((year, mon, mday, 12, 0, 0, 0, 0, -1))
+
+# TODO delete this function
+# Returns a timestamp for noon on the given day,
 # or None if there's an error.  TODO check this is correct
 def _dayFromStrs(mday, mon1, mon2, year):
   mday = int(mday)
+  # TODO only use _yearFromStr in situations like this.
   if len(year) == 2:
     tm = time.localtime()
     year = (tm.tm_year // 100) * 100 + int(year)
@@ -537,6 +553,14 @@ def _dayFromStrs(mday, mon1, mon2, year):
   mon = _monFromStrs(mon1, mon2)
   if mon is None: return None
   return time.mktime((year, mon, mday, 12, 0, 0, 0, 0, -1))
+
+def _yearFromStr(year):
+  if len(year) > 2: return int(year)
+  tm = time.localtime()
+  year = (tm.tm_year // 100) * 100 + int(year)
+  # Interpret 95 as 1995 (not 2095) if it's 2013.
+  if year > tm.tm_year + 1: year -= 100
+  return year
 
 def _gregDayStrFromTm(tm):
   months = calendar.month_abbr
