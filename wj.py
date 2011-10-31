@@ -5,13 +5,14 @@
 # [x] Add suggestions for recent missing entries.
 # [x] Add an 'a' command in interactive mode to input all recent missing entries.
 # [ ] Make sure we can handle w,m,y actions.
-# [ ] Add a command-line way to view more than just -r entries.
+# [x] Add a command-line way to view more than just -r entries. (-l added)
 
 # TODO Eventually
 # [x] Provide output with -o option.
 # [ ] Make sure everything works from the command line (non-interactive).
 # [ ] Support configuration settings file in the .wj folder.
 # [ ] Support Gregorian dates.
+# [ ] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
 
 # imports
 # =======
@@ -464,7 +465,7 @@ def _wjDir():
 # [ ] <d> - <d>, interpreted as a week
 # [ ] dd[/ ][<m>] - dd[/ ]<m>[/ ]<y>, interpreted as a week
 # [ ] dd[/ ]<m> - dd[/ ][<m>][/ ]<y>
-# [ ] MMM dd[(st,nd,rd,th)],? - MMM dd[(st,nd,rd,th)],? <y>
+# [ ] MMM dd - MMM dd,? <y>
 # [x] <m>,? <y>
 # Note that yyyy is already a valid timeMark.
 # There is probably a better way to express all this.
