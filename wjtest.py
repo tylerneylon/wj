@@ -39,6 +39,7 @@ if False:
   mark = wj._markFromUserTimeStr("last month")
   expectVsActual("5--.2011", mark)
 
+# TODO Clean this up into a loop.
 mark = wj._markFromUserTimeStr("Jan, 1988")
 expectVsActual("0--.1988", mark)
 
@@ -61,6 +62,18 @@ mark = wj._markFromUserTimeStr("Feb/29/2000")
 expectVsActual("113.2000", mark)
 
 mark = wj._markFromUserTimeStr("Feb/29/2001")
+expectVsActual(None, mark)
+
+mark = wj._markFromUserTimeStr("1 Jan 2025")
+expectVsActual("0.2025", mark)
+
+mark = wj._markFromUserTimeStr("1 February 1950")
+expectVsActual("43.1950", mark)
+
+mark = wj._markFromUserTimeStr("1 Feb,1950")
+expectVsActual("43.1950", mark)
+
+mark = wj._markFromUserTimeStr("30 Feb 3000")
 expectVsActual(None, mark)
 
 print "fortune smiles upon you... for now - all tests passed"

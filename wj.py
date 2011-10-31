@@ -459,7 +459,7 @@ def _wjDir():
 # [x] last month = most recently-done month.
 # [x] <d_1> = <m>/dd/<y>, where <y> = yy or yyyy,
 #                               <m> = mm or MMM.
-# [ ] <d_2> = dd MMM,? <y>           MMM = Jan, Feb, etc.
+# [x] <d_2> = dd MMM,? <y>           MMM = Jan, Feb, etc.
 # [ ] <d> = <d_1> or <d_2>
 # [ ] <d> - <d>, interpreted as a week
 # [ ] dd[/ ][<m>] - dd[/ ]<m>[/ ]<y>, interpreted as a week
@@ -506,32 +506,47 @@ def _markFromUserTimeStr(userTimeStr):
     mon = _monFromStrs(m.group(1), m.group(2))
     year = int(m.group(3))
     tm = (year, mon, 15, 12, 00, 00, 0, 0, -1)
+    # TODO Move warnings into this fun; use an auxilliary function to help out.
     return _fromDayToScope(_7dateForTime(time.mktime(tm)), 'm', inputMode='Greg')
-  # TODO HERE and below; update to match the new d_1, d_2 syntaxes above (oops)
   dayExp1 = r"%s[/ -](\d+)[/ -](\d+)" % monthExp
   m = re.match(dayExp1, userTimeStr)
   if m:
     ts = _day1FromMatch(m, 0)
-    if ts is None: return None
-    return _7dateForTime(ts)
+    return _7dateForTime(ts) if ts else None
+  dayExp2 = r"(\d+) (\w+)[, ]+(\d+)"
+  m = re.match(dayExp2, userTimeStr)
+  if m:
+    ts = _day2FromMatch(m, 0)
+    return _7dateForTime(ts) if ts else None
+  # TODO HERE Continue adding new formats.
   return None
   
 def _monFromStrs(wholeMatch, firstLetters):
-  if wholeMatch.isdigit():
+  if wholeMatch and wholeMatch.isdigit():
     mon = int(wholeMatch)
     return mon if 0 < mon <= 12 else None
   monStrs = calendar.month_abbr
-  match = [i for i in enumerate(monStrs) if i[1].lower() == firstLetters.lower()]
+  letters = firstLetters[:3].lower()
+  match = [i for i in enumerate(monStrs) if i[1].lower() == letters]
   return match[0][0] if match else None
 
 # Returns a timestamp for noon on the given day,
 # or None if there's an error.
 def _day1FromMatch(m, offset):
   mon = _monFromStrs(m.group(1 + offset), m.group(2 + offset))
-  if mon is None: return None
-  mdayStr = m.group(3 + offset)
-  mday = int(mdayStr)
+  mday = int(m.group(3 + offset))
   year = _yearFromStr(m.group(4 + offset))
+  return _timeFromDayMonYear(mday, mon, year)
+
+def _day2FromMatch(m, offset):
+  mon = _monFromStrs(None, m.group(2 + offset))
+  mday = int(m.group(1 + offset))
+  year = _yearFromStr(m.group(3 + offset))
+  return _timeFromDayMonYear(mday, mon, year)
+
+def _timeFromDayMonYear(mday, mon, year):
+  if not all([mday, mon, year]): return None
+  if mon < 1 or mon > 12: return None
   lastMDay = calendar.monthrange(year, mon)[1]
   if mday < 1 or mday > lastMDay: return None
   return time.mktime((year, mon, mday, 12, 0, 0, 0, 0, -1))
