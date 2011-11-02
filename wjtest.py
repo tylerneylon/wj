@@ -76,5 +76,8 @@ expectVsActual("43.1950", mark)
 mark = wj._markFromUserTimeStr("30 Feb 3000")
 expectVsActual(None, mark)
 
+mark = wj._markFromUserTimeStr("10/22/11-10/28/11")
+expectVsActual("60-.2011", mark)
+
 print "fortune smiles upon you... for now - all tests passed"
 

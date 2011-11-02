@@ -462,7 +462,7 @@ def _wjDir():
 #                               <m> = mm or MMM.
 # [x] <d_2> = dd MMM,? <y>           MMM = Jan, Feb, etc.
 # [x] <d> = <d_1> or <d_2>
-# [ ] <d> - <d>, interpreted as a week
+# [x] <d> - <d>, interpreted as a week
 # [ ] dd[/ ][<m>] - dd[/ ]<m>[/ ]<y>, interpreted as a week
 # [ ] dd[/ ]<m> - dd[/ ][<m>][/ ]<y>
 # [ ] MMM dd - MMM dd,? <y>
@@ -509,15 +509,27 @@ def _markFromUserTimeStr(userTimeStr):
     tm = (year, mon, 15, 12, 00, 00, 0, 0, -1)
     # TODO Move warnings into this fun; use an auxilliary function to help out.
     return _fromDayToScope(_7dateForTime(time.mktime(tm)), 'm', inputMode='Greg')
-  dayExp1 = r"%s[/ -](\d+)[/ -](\d+)" % monthExp
-  dayExp2 = r"(\d+) (\w+)[, ]+(\d+)"
-  dayExp = r"(?:%s|%s)" % (dayExp1, dayExp2)
-  m = re.match(dayExp, userTimeStr)
+  dayExp1 = r"%s[/ -](\d+)[/ -](\d+)" % monthExp  # 4 groups
+  dayExp2 = r"(\d+) (\w+)[, ]+(\d+)"  # 3 groups
+  dayExp = r"(?:%s|%s)" % (dayExp1, dayExp2)  # 7 groups
+  m = re.match("%s$" % dayExp, userTimeStr)
   if m:
     ts = _dayFromMatch(m, 0)
     return _7dateForTime(ts) if ts else None
-  # TODO HERE Continue adding new formats.
+  weekExp1 = r"%s ?- ?%s" % (dayExp, dayExp)
+  m = re.match(weekExp1, userTimeStr)
+  if m:
+    ts = _week1FromMatch(m, 0)
+    return _fromDayToScope(_7dateForTime(ts), 'w') if ts else None
+  # TODO NEXT Continue adding new formats.
   return None
+
+def _week1FromMatch(m, offset):
+  ts1 = _dayFromMatch(m, 0)
+  ts2 = _dayFromMatch(m, 7)
+  if ts1 is None or ts2 is None: return None
+  ret = (ts1 + ts2) / 2.0
+  return (ts1 + ts2) / 2.0
   
 def _monFromStrs(wholeMatch, firstLetters):
   if wholeMatch and wholeMatch.isdigit():
