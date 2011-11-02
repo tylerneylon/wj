@@ -463,9 +463,8 @@ def _wjDir():
 # [x] <d_2> = dd MMM,? <y>           MMM = Jan, Feb, etc.
 # [x] <d> = <d_1> or <d_2>
 # [x] <d> - <d>, interpreted as a week
-# [ ] dd[/ ][<m>] - dd[/ ]<m>[/ ]<y>, interpreted as a week
-# [ ] dd[/ ]<m> - dd[/ ][<m>][/ ]<y>
-# [ ] MMM dd - MMM dd,? <y>
+# [x] <m>[/ ]dd - [<m>][/ ]dd[/ ]<y>, interpreted as a week
+# [ ] dd - dd MMM,? <y>
 # [x] <m>,? <y>
 # Note that yyyy is already a valid timeMark.
 # There is probably a better way to express all this.
@@ -502,7 +501,7 @@ def _markFromUserTimeStr(userTimeStr):
     return aMonth
   # monthExp gives back two groups - hand them to _monFromStrs
   monthExp = r"((?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*|\d+)"
-  m = re.match(r"%s,? (\d+)" % monthExp, userTimeStr)
+  m = re.match(r"%s,? (\d+)$" % monthExp, userTimeStr)
   if m:
     mon = _monFromStrs(m.group(1), m.group(2))
     year = int(m.group(3))
@@ -519,16 +518,33 @@ def _markFromUserTimeStr(userTimeStr):
   weekExp1 = r"%s ?- ?%s" % (dayExp, dayExp)
   m = re.match(weekExp1, userTimeStr)
   if m:
-    ts = _week1FromMatch(m, 0)
+    ts = _week1FromMatch(m)
+    return _fromDayToScope(_7dateForTime(ts), 'w') if ts else None
+  weekExp2 = r"%s[/ ](\d+) ?- ?(?:%s[/ ])?(\d+)[/ ](\d+)" % (monthExp, monthExp)
+  m = re.match(weekExp2, userTimeStr)
+  if m:
+    ts = _week2FromMatch(m)
     return _fromDayToScope(_7dateForTime(ts), 'w') if ts else None
   # TODO NEXT Continue adding new formats.
   return None
 
-def _week1FromMatch(m, offset):
+def _week1FromMatch(m):
   ts1 = _dayFromMatch(m, 0)
   ts2 = _dayFromMatch(m, 7)
   if ts1 is None or ts2 is None: return None
-  ret = (ts1 + ts2) / 2.0
+  return (ts1 + ts2) / 2.0
+
+def _week2FromMatch(m):
+  mon1 = _monFromStrs(m.group(1), m.group(2))
+  mday1 = int(m.group(3))
+  mon2 = mon1
+  if m.group(4) or m.group(5):
+    mon2 = _monFromStrs(m.group(4), m.group(5))
+  mday2 = int(m.group(6))
+  year = _yearFromStr(m.group(7))
+  if not all([mon1, mday1, mon2, mday2, year]): return None
+  ts1 = time.mktime((year, mon1, mday1, 12, 0, 0, 0, 0, -1))
+  ts2 = time.mktime((year, mon2, mday2, 12, 0, 0, 0, 0, -1))
   return (ts1 + ts2) / 2.0
   
 def _monFromStrs(wholeMatch, firstLetters):

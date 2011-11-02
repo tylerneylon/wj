@@ -79,5 +79,17 @@ expectVsActual(None, mark)
 mark = wj._markFromUserTimeStr("10/22/11-10/28/11")
 expectVsActual("60-.2011", mark)
 
+mark = wj._markFromUserTimeStr("1/1-7/11")
+expectVsActual("0-.2011", mark)
+
+mark = wj._markFromUserTimeStr("Feb 5 - 11 2001")
+expectVsActual("5-.2001", mark)
+
+mark = wj._markFromUserTimeStr("9/3 - 9/9/1995")
+expectVsActual("50-.1995", mark)
+
+mark = wj._markFromUserTimeStr("1/29-2/4/88")
+expectVsActual("4-.1988", mark)
+
 print "fortune smiles upon you... for now - all tests passed"
 
