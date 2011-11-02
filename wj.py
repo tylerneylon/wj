@@ -461,7 +461,7 @@ def _wjDir():
 # [x] <d_1> = <m>/dd/<y>, where <y> = yy or yyyy,
 #                               <m> = mm or MMM.
 # [x] <d_2> = dd MMM,? <y>           MMM = Jan, Feb, etc.
-# [ ] <d> = <d_1> or <d_2>
+# [x] <d> = <d_1> or <d_2>
 # [ ] <d> - <d>, interpreted as a week
 # [ ] dd[/ ][<m>] - dd[/ ]<m>[/ ]<y>, interpreted as a week
 # [ ] dd[/ ]<m> - dd[/ ][<m>][/ ]<y>
@@ -510,14 +510,11 @@ def _markFromUserTimeStr(userTimeStr):
     # TODO Move warnings into this fun; use an auxilliary function to help out.
     return _fromDayToScope(_7dateForTime(time.mktime(tm)), 'm', inputMode='Greg')
   dayExp1 = r"%s[/ -](\d+)[/ -](\d+)" % monthExp
-  m = re.match(dayExp1, userTimeStr)
-  if m:
-    ts = _day1FromMatch(m, 0)
-    return _7dateForTime(ts) if ts else None
   dayExp2 = r"(\d+) (\w+)[, ]+(\d+)"
-  m = re.match(dayExp2, userTimeStr)
+  dayExp = r"(?:%s|%s)" % (dayExp1, dayExp2)
+  m = re.match(dayExp, userTimeStr)
   if m:
-    ts = _day2FromMatch(m, 0)
+    ts = _dayFromMatch(m, 0)
     return _7dateForTime(ts) if ts else None
   # TODO HERE Continue adding new formats.
   return None
@@ -544,6 +541,11 @@ def _day2FromMatch(m, offset):
   mday = int(m.group(1 + offset))
   year = _yearFromStr(m.group(3 + offset))
   return _timeFromDayMonYear(mday, mon, year)
+
+def _dayFromMatch(m, offset):
+  if any([m.group(i) for i in range(1, 5)]):
+    return _day1FromMatch(m, offset)
+  return _day2FromMatch(m, 4)
 
 def _timeFromDayMonYear(mday, mon, year):
   if not all([mday, mon, year]): return None
