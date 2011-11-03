@@ -525,7 +525,11 @@ def _markFromUserTimeStr(userTimeStr):
   if m:
     ts = _week2FromMatch(m)
     return _fromDayToScope(_7dateForTime(ts), 'w') if ts else None
-  # TODO NEXT Continue adding new formats.
+  weekExp3 = r"(\d+)(?: (\w+))? ?- ?(\d+) (\w+),? (\d+)"
+  m = re.match(weekExp3, userTimeStr)
+  if m:
+    ts = _week3FromMatch(m)
+    return _fromDayToScope(_7dateForTime(ts), 'w') if ts else None
   return None
 
 def _week1FromMatch(m):
@@ -547,6 +551,19 @@ def _week2FromMatch(m):
   ts2 = time.mktime((year, mon2, mday2, 12, 0, 0, 0, 0, -1))
   return (ts1 + ts2) / 2.0
   
+def _week3FromMatch(m):
+  mday1 = int(m.group(1))
+  mday2 = int(m.group(3))
+  mon2 = _monFromStrs(None, m.group(4))
+  mon1 = mon2
+  if m.group(2):
+    mon1 = _monFromStrs(None, m.group(2))
+  year = _yearFromStr(m.group(5))
+  if not mon1 or not mon2: return None
+  ts1 = time.mktime((year, mon1, mday1, 12, 0, 0, 0, 0, -1))
+  ts2 = time.mktime((year, mon2, mday2, 12, 0, 0, 0, 0, -1))
+  return (ts1 + ts2) / 2.0
+
 def _monFromStrs(wholeMatch, firstLetters):
   if wholeMatch and wholeMatch.isdigit():
     mon = int(wholeMatch)
@@ -580,24 +597,6 @@ def _timeFromDayMonYear(mday, mon, year):
   if mon < 1 or mon > 12: return None
   lastMDay = calendar.monthrange(year, mon)[1]
   if mday < 1 or mday > lastMDay: return None
-  return time.mktime((year, mon, mday, 12, 0, 0, 0, 0, -1))
-
-# TODO delete this function
-# Returns a timestamp for noon on the given day,
-# or None if there's an error.  TODO check this is correct
-def _dayFromStrs(mday, mon1, mon2, year):
-  mday = int(mday)
-  # TODO only use _yearFromStr in situations like this.
-  if len(year) == 2:
-    tm = time.localtime()
-    year = (tm.tm_year // 100) * 100 + int(year)
-    # Interpret 95 as 1995 (not 2095) if it's 2013.
-    if year > tm.tm_year + 1:
-      year -= 100
-  else:
-    year = int(year)
-  mon = _monFromStrs(mon1, mon2)
-  if mon is None: return None
   return time.mktime((year, mon, mday, 12, 0, 0, 0, 0, -1))
 
 def _yearFromStr(year):

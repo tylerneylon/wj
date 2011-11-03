@@ -9,11 +9,12 @@ import wj
 # and say something friendly about it
 # to the user.
 
-def expectVsActual(expected, actual):
+def expectVsActual(expected, actual, comment=None):
   if expected == actual: return
   print "Failure"
   print "expected %s" % `expected`
   print "actual %s" % `actual`
+  if comment: print "comment: %s" % comment
   sys.exit(1)
 
 
@@ -90,6 +91,18 @@ expectVsActual("50-.1995", mark)
 
 mark = wj._markFromUserTimeStr("1/29-2/4/88")
 expectVsActual("4-.1988", mark)
+
+userStr = "22 - 28 Oct 2011"
+mark = wj._markFromUserTimeStr(userStr)
+expectVsActual("60-.2011", mark, comment=userStr)
+
+userStr = "1-7 Jan 11"
+mark = wj._markFromUserTimeStr(userStr)
+expectVsActual("0-.2011", mark, comment=userStr)
+
+userStr = "29 Jan - 4 Feb 1988"
+mark = wj._markFromUserTimeStr(userStr)
+expectVsActual("4-.1988", mark, comment=userStr)
 
 print "fortune smiles upon you... for now - all tests passed"
 
