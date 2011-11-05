@@ -10,9 +10,11 @@
 # TODO Eventually
 # [x] Provide output with -o option.
 # [ ] Make sure everything works from the command line (non-interactive).
-# [ ] Support configuration settings file in the .wj folder.
+# [x] Support configuration settings file in the .wj folder.
 # [ ] Support Gregorian dates.
 # [ ] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
+# [ ] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
+# [ ] Exit more gracefully on ctrl-c.
 
 # imports
 # =======
@@ -34,9 +36,10 @@ import time
 _yearMessages = None
 _yearLoaded = None
 _verbose = False
-# Possible values are '7date', 'Greg'
-# TODO Load this from a conf file, if it exists.
+
+# These are overridden by .wj/config's value, if it exists.
 _userTimeMode = 'Greg'
+_userDateFormat = '%d %b %Y'
 
 # public functions
 # ================
@@ -80,12 +83,15 @@ def handleArgs(args):
   else:
     runInteractive()
 
+# TODO Move this comment somewhere more useful.
 # A timeMark is a string representing a time period we know about.
 # It can be in one of these formats:
 # 123.2011  day
 # 12-.2011  week
 # 1--.2011  month
 # 2011      year
+# To be able to store Gregorian-based day ranges:
+# (day) - (day)  Gregorian week or month
 
 def addMessage(msg, timeMark=None):
   if timeMark is None:
@@ -104,12 +110,12 @@ def runInteractive():
   actionChar = _getch()
   messageChars = ['d', 'w', 'm', 'y']
   if actionChar in messageChars:
-    print "Today is %s" % _7dateForTime()
+    print "Today is %s" % _userDateForTime()
     timeMark = currentDefaultTimeMark(scope=actionChar)
     msg = raw_input("Enter message for %s: " % timeMark)
     addMessage(msg, timeMark)
   elif actionChar == 't':
-    print "Today is %s" % _7dateForTime()
+    print "Today is %s" % _userDateForTime()
     getUserTimeMarkAndMessage()
   elif actionChar == 'a':
     getAllRecentMissingMessages()
@@ -449,28 +455,66 @@ def _wjDir():
 
 def _loadConfig():
   global _userTimeMode
+  global _userDateFormat
   try:
     f = open(_wjDir() + 'config')
   except IOError, e:
     return
   config = eval(f.read())
-  _userTimeMode = config['userTimeMode']
+  _userTimeMode = config['timeMode']
+  _userDateFormat = config['dateFormat']
   f.close()
 
 # TODO Be able to change user time modes, and call this
 #      to save it.
 def _saveConfig():
   global _userTimeMode
+  global _userDateFormat
   f = open(_wjDir() + 'config', 'w')
   f.write("# Config file for wj.\n")
   f.write("# File format: the string representation of a python dictionary.\n")
-  config = {'userTimeMode':_userTimeMode}
+  f.write("# dateFormat uses the codes specified on this page:\n")
+  f.write("# http://docs.python.org/library/time.html#time.strftime\n")
+  config = {'timeMode':_userTimeMode,'dateFormat':_userDateFormat}
   f.write(`config`)
   f.close()
 
-
 # user time functions
 # ===================
+
+def _userDateForTime(ts=None):
+  global _userTimeMode
+  global _userDateFormat
+  if _userTimeMode == '7date': return _7dateForTime(ts)
+  # Gregorian.
+  str = time.strftime(_userDateFormat, time.localtime(ts))
+  while str[0] == '0': str = str[1:]  # Drop leading 0's.
+  return str
+
+def _userStrForMark(mark):
+  global _userTimeMode
+  global _userDateFormat
+  if _userTimeMode == '7date': return mark
+  # Produce a Gregorian string.
+  scope = _scopeForMark(mark)  # TODO Update _scopeForMark to handle Gregorian week/month ranges in 7date format.
+  if scope == 'd': return _userDateForTime(_timestampForMark(mark))
+  if scope == 'w':
+    # TODO HERE Simplify the output if the years / months are the same.
+    # and finish the month case, and test this all out
+    tsLast = _timestampForMark(mark)
+    tsFirst = tsLast - 60 * 60 * 24 * 6  # TODO This won't work for the last week of the year.
+    # I think the thing to do here is to make a function which extracts timestamps for the first & last
+    # days of a timeMark.  In the month case, check to see if it's within the same month using time.localtime.
+    # Other functions that will need updating for this one to work: _scopeForMark, _timestampForMark
+    return "%s - %s" % tuple(map(_userDateForTime, [tsFirst, tsLast]))
+  if scope == 'm':
+    if mark[0] == 'm':  # TODO nope, I decided to omit the inital 'm' or 'w'.
+      [first, last] = mark.split(' - ')
+    else:
+      pass
+  if scope == 'y': return mark
+  print "Warning: Failed to parse the timeMark %s" % mark
+  return None
 
 # We accept formats:
 # [x] Any valid timeMark.
