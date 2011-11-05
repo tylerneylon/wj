@@ -36,7 +36,7 @@ _yearLoaded = None
 _verbose = False
 # Possible values are '7date', 'Greg'
 # TODO Load this from a conf file, if it exists.
-_userTimeMode = '7date'
+_userTimeMode = 'Greg'
 
 # public functions
 # ================
@@ -447,9 +447,30 @@ def _wjDir():
   homeDir = os.path.expanduser('~') + '/'
   return homeDir + ".wj/"
 
+def _loadConfig():
+  global _userTimeMode
+  try:
+    f = open(_wjDir() + 'config')
+  except IOError, e:
+    return
+  config = eval(f.read())
+  _userTimeMode = config['userTimeMode']
+  f.close()
+
+# TODO Be able to change user time modes, and call this
+#      to save it.
+def _saveConfig():
+  global _userTimeMode
+  f = open(_wjDir() + 'config', 'w')
+  f.write("# Config file for wj.\n")
+  f.write("# File format: the string representation of a python dictionary.\n")
+  config = {'userTimeMode':_userTimeMode}
+  f.write(`config`)
+  f.close()
+
+
 # user time functions
 # ===================
-
 
 # We accept formats:
 # [x] Any valid timeMark.
@@ -464,7 +485,7 @@ def _wjDir():
 # [x] <d> = <d_1> or <d_2>
 # [x] <d> - <d>, interpreted as a week
 # [x] <m>[/ ]dd - [<m>][/ ]dd[/ ]<y>, interpreted as a week
-# [ ] dd - dd MMM,? <y>
+# [x] dd - dd MMM,? <y>
 # [x] <m>,? <y>
 # Note that yyyy is already a valid timeMark.
 # There is probably a better way to express all this.
@@ -668,6 +689,8 @@ def _getch():
 
 # Main
 # ====
+
+_loadConfig()  # Load config whether this is an import or an execution.
 
 if __name__ ==  "__main__":
   handleArgs(sys.argv)
