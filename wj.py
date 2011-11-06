@@ -493,8 +493,8 @@ def _loadConfig():
     except IOError, e:
       return
     config = eval(f.read())
-    _userTimeMode = config['timeMode']
-    _userDateFormat = config['dateFormat']
+    if 'timeMode' in config: _userTimeMode = config['timeMode']
+    if 'dateFormat' in config: _userDateFormat = config['dateFormat']
     f.close()
   finally:
     # TODO TEMP DEBUG
