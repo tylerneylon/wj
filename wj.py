@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+# TODO HERE
+# Add tests for _userStrForMark to wjtest.py
+# It's failing for 10--.2010.
+
 # TODO NEXT
 # [x] List recent entries on interactive startup.
 # [x] Add suggestions for recent missing entries.
@@ -15,6 +19,7 @@
 # [ ] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
 # [ ] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
 # [ ] Exit more gracefully on ctrl-c.
+# [ ] Simplify the week/month user string if month or year are the same.
 
 # imports
 # =======
@@ -40,6 +45,7 @@ _verbose = False
 # These are overridden by .wj/config's value, if it exists.
 _userTimeMode = 'Greg'
 _userDateFormat = '%d %b %Y'
+_userMonFormat = '%b %Y'
 
 # public functions
 # ================
@@ -286,6 +292,13 @@ def _escForTex(str):
 # heuristic to see if a string looks
 # like a 7date.
 def _scopeForMark(timeMark):
+  if timeMark.find(' - ') != -1:
+    [ts1, ts2] = _firstLastTimesForMark(timeMark)
+    if not ts1 or not ts2: return None
+    numDays = (ts2 - ts1) / (60 * 60 * 24)
+    if 6 < numDays < 8: return 'w'
+    if 27 < numDays < 50: return 'm'
+    return None
   scopeExpr = [[r"\d+$", "y"],
                [r"\d+\.\d+$", "d"],
                [r"\d+-\.\d+$", "w"],
@@ -293,6 +306,51 @@ def _scopeForMark(timeMark):
   for exp, scope in scopeExpr:
     if re.match(exp, timeMark): return scope
   return None
+
+def _firstLastTimesForMark(mark):
+  hour = 60 * 60
+  sepIndex = mark.find(' - ')
+  if sepIndex == -1:
+    scope = _scopeForMark(mark)
+    if scope == "y":
+      year = int(mark)
+      date = datetime.date(year, 1, 1)
+      ts1 = calendar.timegm(date.timetuple()) + 12 * hour
+      date = datetime.date(year + 1, 1, 1)
+      ts2 = calendar.timegm(date.timetuple()) - 9 * hour
+      return [ts1, ts2]
+    elif scope == "d":
+      ts = _timestampFor7date(mark) + 12 * hour
+      return [ts, ts]
+    elif scope == "w":
+      lastDig = '6'
+      if mark[:3] == '103':
+        isLeap = calendar.isleap(int(mark[-4:]))
+        lastDig = '1' if isLeap else '0'
+      ts1 = _timestampFor7date(mark.replace('-', '0')) + 12 * hour
+      ts2 = _timestampFor7date(mark.replace('-', lastDig)) + 13 * hour
+      return [ts1, ts2]
+    elif scope == "m":
+      ts1 = _timestampFor7date(mark.replace('--', '00')) + 12 * hour
+      if mark[:2] == '10':
+        isLeap = calendar.isleap(int(mark[-4:]))
+        lastDigs = '31' if isLeap else '30'
+        mark = mark.replace('--', lastDigs)
+      else:
+        mark = mark.replace('-', '6')
+      ts2 = _timestampFor7date(mark) + 14 * hour
+      return [ts1, ts2]
+    return [None, None]
+  dayMarks = [mark[:sepIndex], mark[sepIndex + 3:]]
+  # Confirm both dayMarks are valid day marks.
+  if any([s != 'd' for s in map(_scopeForMark, dayMarks)]):
+    return [None, None]
+  times = map(_timestampFor7date, dayMarks)
+  times = [t + 12 * hour for t in times]
+  numDays = (times[1] - times[0]) / (60 * 60 * 24)
+  if 6 < numDays < 8: times[1] += hour  # week
+  if 27 < numDays < 50: times[1] += 2 * hour  # month
+  return times
 
 def _fromDayToScope(timeMark, scope="d", inputMode=None):
   global _userTimeMode
@@ -320,34 +378,7 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
   return ''.join(timeMarkChars)
 
 def _timestampForMark(timeMark):
-  hour = 60 * 60
-  scope = _scopeForMark(timeMark)
-  if scope == "y":
-    year = int(timeMark)
-    date = datetime.date(year + 1, 1, 1)
-    ts = calendar.timegm(date.timetuple())
-    return ts - 9 * hour
-  elif scope == "d":
-    ts = _timestampFor7date(timeMark)
-    return ts + 12 * hour
-  elif scope == "w":
-    lastDig = '6'
-    if timeMark[:3] == '103':
-      isLeap = calendar.isleap(int(timeMark[-4:]))
-      lastDig = '1' if isLeap else '0'
-    timeMark = timeMark.replace('-', lastDig)
-    ts = _timestampFor7date(timeMark)
-    return ts + 13 * hour
-  elif scope == "m":
-    if timeMark[:2] == '10':
-      isLeap = calendar.isleap(int(timeMark[-4:]))
-      lastDigs = '31' if isLeap else '30'
-      timeMark = timeMark.replace('--', lastDigs)
-    else:
-      timeMark = timeMark.replace('-', '6')
-    ts = _timestampFor7date(timeMark)
-    return ts + 14 * hour
-  return None
+  return _firstLastTimesForMark(timeMark)[1]
 
 # Returns a 7date string for the given timestamp,
 # which is seconds-since-epoch (compatible with
@@ -457,13 +488,17 @@ def _loadConfig():
   global _userTimeMode
   global _userDateFormat
   try:
-    f = open(_wjDir() + 'config')
-  except IOError, e:
-    return
-  config = eval(f.read())
-  _userTimeMode = config['timeMode']
-  _userDateFormat = config['dateFormat']
-  f.close()
+    try:
+      f = open(_wjDir() + 'config')
+    except IOError, e:
+      return
+    config = eval(f.read())
+    _userTimeMode = config['timeMode']
+    _userDateFormat = config['dateFormat']
+    f.close()
+  finally:
+    # TODO TEMP DEBUG
+    print "=== Mode: %s ===" % _userTimeMode
 
 # TODO Be able to change user time modes, and call this
 #      to save it.
@@ -496,22 +531,14 @@ def _userStrForMark(mark):
   global _userDateFormat
   if _userTimeMode == '7date': return mark
   # Produce a Gregorian string.
-  scope = _scopeForMark(mark)  # TODO Update _scopeForMark to handle Gregorian week/month ranges in 7date format.
+  scope = _scopeForMark(mark)
+  times = _firstLastTimesForMark(mark)
   if scope == 'd': return _userDateForTime(_timestampForMark(mark))
-  if scope == 'w':
-    # TODO HERE Simplify the output if the years / months are the same.
-    # and finish the month case, and test this all out
-    tsLast = _timestampForMark(mark)
-    tsFirst = tsLast - 60 * 60 * 24 * 6  # TODO This won't work for the last week of the year.
-    # I think the thing to do here is to make a function which extracts timestamps for the first & last
-    # days of a timeMark.  In the month case, check to see if it's within the same month using time.localtime.
-    # Other functions that will need updating for this one to work: _scopeForMark, _timestampForMark
-    return "%s - %s" % tuple(map(_userDateForTime, [tsFirst, tsLast]))
+  if scope == 'w': return "%s - %s" % tuple(map(_userDateForTime, times))
   if scope == 'm':
-    if mark[0] == 'm':  # TODO nope, I decided to omit the inital 'm' or 'w'.
-      [first, last] = mark.split(' - ')
-    else:
-      pass
+    [tm1, tm2] = map(time.localtime, _firstLastTimesForMark(mark))
+    if tm1.tm_mon == tm2.tm_mon: return time.strftime(_userMonFormat, tm1)
+    else: return "%s - %s" % tuple(map(_userDateForTime, times))
   if scope == 'y': return mark
   print "Warning: Failed to parse the timeMark %s" % mark
   return None
