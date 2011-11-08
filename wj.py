@@ -295,7 +295,7 @@ def _scopeForMark(timeMark):
   if timeMark.find(' - ') != -1:
     [ts1, ts2] = _firstLastTimesForMark(timeMark)
     if not ts1 or not ts2: return None
-    numDays = (ts2 - ts1) / (60 * 60 * 24)
+    numDays = (ts2 - ts1) / (60 * 60 * 24) + 1
     if 6 < numDays < 8: return 'w'
     if 27 < numDays < 50: return 'm'
     return None
@@ -347,7 +347,7 @@ def _firstLastTimesForMark(mark):
     return [None, None]
   times = map(_timestampFor7date, dayMarks)
   times = [t + 12 * hour for t in times]
-  numDays = (times[1] - times[0]) / (60 * 60 * 24)
+  numDays = (times[1] - times[0]) / (60 * 60 * 24) + 1
   if 6 < numDays < 8: times[1] += hour  # week
   if 27 < numDays < 50: times[1] += 2 * hour  # month
   return times
@@ -537,8 +537,10 @@ def _userStrForMark(mark):
   if scope == 'w': return "%s - %s" % tuple(map(_userDateForTime, times))
   if scope == 'm':
     [tm1, tm2] = map(time.localtime, _firstLastTimesForMark(mark))
-    if tm1.tm_mon == tm2.tm_mon: return time.strftime(_userMonFormat, tm1)
-    else: return "%s - %s" % tuple(map(_userDateForTime, times))
+    if tm1.tm_mon != tm2.tm_mon or tm1.tm_mday > 1:
+      return "%s - %s" % tuple(map(_userDateForTime, times))
+    else:
+      return time.strftime(_userMonFormat, tm1)
   if scope == 'y': return mark
   print "Warning: Failed to parse the timeMark %s" % mark
   return None

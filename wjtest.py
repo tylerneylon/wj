@@ -67,5 +67,22 @@ for testCase in testStrs:
   mark = wj._markFromUserTimeStr(testCase[0])
   expectVsActual(testCase[1], mark, comment=testCase[0])
 
+wj._userTimeMode = 'Greg'
+testStrs = [["0.2001", "1 Jan 2001"],
+            ["3-.1979", "22 Jan 1979 - 28 Jan 1979"],
+            ["0--.1988", "1 Jan 1988 - 18 Feb 1988"],
+            ["0.1965 - 6.1965", "1 Jan 1965 - 7 Jan 1965"],
+            ["0.2011 - 42.2011", "Jan 2011"],
+            # This next case is weird, and I decided the
+            # current string is best because it is true
+            # (albeit redundant) and includes the idea that
+            # the scope is abstractly more than a day.
+            # In most cases, users will never see this.
+            ["103-.2035", "31 Dec 2035 - 31 Dec 2035"],
+            ["10--.2025", "10 Dec 2025 - 31 Dec 2025"]]
+for testCase in testStrs:
+  userStr = wj._userStrForMark(testCase[0])
+  expectVsActual(testCase[1], userStr, comment=testCase[0])
+
 print "fortune smiles upon you... for now - all tests passed"
 exit(0)
