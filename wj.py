@@ -1,9 +1,5 @@
 #!/usr/bin/python
 
-# TODO HERE
-# Add tests for _userStrForMark to wjtest.py
-# It's failing for 10--.2010.
-
 # TODO NEXT
 # [x] List recent entries on interactive startup.
 # [x] Add suggestions for recent missing entries.
@@ -20,6 +16,8 @@
 # [ ] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
 # [ ] Exit more gracefully on ctrl-c.
 # [ ] Simplify the week/month user string if month or year are the same.
+# [ ] Handle cross-year-boundary weeks.  Its timestamp should be at the end of the beginning year,
+#     which is an exception.
 
 # imports
 # =======
@@ -108,7 +106,7 @@ def runInteractive():
   print "Work Journal (wj)"
   print "Recent messages:"
   showMessages(8)
-  showRecentMissingTimeMarks()
+  showRecentMissingUserTimeStrs()
   print "---------------------------------"
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing"
   print "         specify [t]ime; [o]utput; [h]elp; [q]uit."
@@ -118,11 +116,11 @@ def runInteractive():
   if actionChar in messageChars:
     print "Today is %s" % _userDateForTime()
     timeMark = currentDefaultTimeMark(scope=actionChar)
-    msg = raw_input("Enter message for %s: " % timeMark)
+    msg = raw_input("Enter message for %s: " % _userStrForMark(timeMark))
     addMessage(msg, timeMark)
   elif actionChar == 't':
     print "Today is %s" % _userDateForTime()
-    getUserTimeMarkAndMessage()
+    getUserTimeStrAndMessage()
   elif actionChar == 'a':
     getAllRecentMissingMessages()
   elif actionChar == 'o':
@@ -162,10 +160,10 @@ def showMessages(num=None):
   timeMarks = sorted(_yearMessages, key=_timestampForMark)
   if num:
     timeMarks = timeMarks[-num:] # Just keep the most recent num.
-  for timeMark in timeMarks:
-    print "%10s %s" % (timeMark, _yearMessages[timeMark])
+  for mark in timeMarks:
+    print "%10s %s" % (_userStrForMark(mark), _yearMessages[mark])
 
-def showRecentMissingTimeMarks():
+def showRecentMissingUserTimeStrs():
   global _yearMessages
   _loadYear()
   allRecent = _recentTimeMarks(8)
@@ -175,7 +173,7 @@ def showRecentMissingTimeMarks():
   for timeMark in allRecent:
     if timeMark not in msgRecent:
       if numMarks > 0: str += ", "
-      str += "%s" % timeMark
+      str += _userStrForMark(timeMark)
       numMarks += 1
       if timeMark == _7dateForTime(time.time()):
         str += " (today)"
@@ -190,18 +188,23 @@ def getAllRecentMissingMessages():
   msgRecent = sorted(_yearMessages, key=_timestampForMark)[-8:]
   for timeMark in allRecent:
     if timeMark not in msgRecent:
-      msg = raw_input("Enter message for %s: " % timeMark)
+      msg = raw_input("Enter message for %s: " % _userStrForMark(timeMark))
       addMessage(msg, timeMark)
 
-def getUserTimeMarkAndMessage():
+def getUserTimeStrAndMessage():
+  global _userTimeMode
   timestamp = None
   while timestamp is None:
-    print "Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), 2025 (year)"
-    timeMark = raw_input("Enter timemark: ")
+    if _userTimeMode == '7date':
+      print "Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), 2025 (year)"
+    else:
+      print "Formats: 1/30/99 or 30 Jan 1999 (day), <day> - <day> (week), Jan 1999 (month), 1999 (year)"
+    userTimeStr = raw_input("Enter time: ")
+    timeMark = _markFromUserTimeStr(userTimeStr)
     timestamp = _timestampForMark(timeMark)
     if timestamp is None:
-      print "Couldn't parse that timemark."
-  msg = raw_input("Enter message for %s: " % timeMark)
+      print "Couldn't parse that time."
+  msg = raw_input("Enter message for %s: " % _userStrForMark(timeMark))
   addMessage(msg, timeMark)
 
 def texStringForYear(year=None):
@@ -511,7 +514,7 @@ def _saveConfig():
   f.write("# dateFormat uses the codes specified on this page:\n")
   f.write("# http://docs.python.org/library/time.html#time.strftime\n")
   config = {'timeMode':_userTimeMode,'dateFormat':_userDateFormat}
-  f.write(`config`)
+  f.write(`config` + "\n")
   f.close()
 
 # user time functions
@@ -767,3 +770,7 @@ _loadConfig()  # Load config whether this is an import or an execution.
 
 if __name__ ==  "__main__":
   handleArgs(sys.argv)
+  _saveConfig()  # TODO HERE Somehow this didn't get called when I ran "wj -r".
+  # I'm currently working on getting everything to run smoothly in Gregorian mode.
+  # I'd like to test it more by directly using it, and do a read-through of the
+  # time conversion functions to look for any cases I may have missed.
