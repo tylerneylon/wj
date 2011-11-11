@@ -71,16 +71,16 @@ def handleArgs(args):
   (options, args) = parser.parse_args(args)
   if options.listAll:
     showMessages()  # TODO make this an option in interactive mode
-    exit()
+    return
   if options.showRecent:
     showMessages(8)
-    exit()
+    return
   if options.outfile:
     texString = texStringForYear()
     f = open(options.outfile, 'w')
     f.write(texString)
     f.close()
-    exit()
+    return
   if len(args) > 1:
     msg = ' '.join(args[1:])
     addMessage(msg)
@@ -770,7 +770,8 @@ _loadConfig()  # Load config whether this is an import or an execution.
 
 if __name__ ==  "__main__":
   handleArgs(sys.argv)
-  _saveConfig()  # TODO HERE Somehow this didn't get called when I ran "wj -r".
+  _saveConfig()
+  # TODO HERE
   # I'm currently working on getting everything to run smoothly in Gregorian mode.
   # I'd like to test it more by directly using it, and do a read-through of the
   # time conversion functions to look for any cases I may have missed.
