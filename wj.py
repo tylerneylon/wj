@@ -355,6 +355,7 @@ def _firstLastTimesForMark(mark):
   if 27 < numDays < 50: times[1] += 2 * hour  # month
   return times
 
+# TODO HERE
 def _fromDayToScope(timeMark, scope="d", inputMode=None):
   global _userTimeMode
   if inputMode and scope in ["w", "m"] and inputMode != _userTimeMode:
@@ -365,10 +366,17 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
   if scope == "d":
     pass
   elif scope == "w":
-    if dotIndex > 1:
-      timeMarkChars[dotIndex - 1] = '-'
+    if _userTimeMode == 'Greg':
+      ts = _timestampForMark(timeMark)
+      d = datetime.datetime.utcfromtimestamp(ts)
+      d1 = d + datetime.timedelta(days=(-1 * d.weekday()))
+      d2 = d1 + datetime.timedelta(days=6)
+      timeMarkChars = list("%s - %s" % tuple(map(_7dateForDateTime, [d1, d2])))
     else:
-      timeMarkChars = list("0-.%s" % timeMark[dotIndex + 1:])
+      if dotIndex > 1:
+        timeMarkChars[dotIndex - 1] = '-'
+      else:
+        timeMarkChars = list("0-.%s" % timeMark[dotIndex + 1:])
   elif scope == "m":
     if dotIndex > 2:
       timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
@@ -391,6 +399,11 @@ def _7dateForTime(timestamp=None):
     timestamp = time.time()
   tm = time.localtime(timestamp)
   return "%s.%d" % (_baseNString(7, tm.tm_yday - 1), tm.tm_year)
+
+# Assumes the datetime is naive (has no timezone info),
+# and is given UTC for the date in mind.
+def _7dateForDateTime(dt):
+  return _7dateForTime(calendar.timegm(dt.timetuple()))
 
 # The inverse of _7dateForTime.
 # Returns the timestamp for midnight at the start of the date,
