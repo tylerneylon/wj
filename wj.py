@@ -11,7 +11,7 @@
 # [x] Provide output with -o option.
 # [ ] Make sure everything works from the command line (non-interactive).
 # [x] Support configuration settings file in the .wj folder.
-# [ ] Support Gregorian dates.
+# [x] Support Gregorian dates.
 # [ ] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
 # [ ] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
 # [ ] Exit more gracefully on ctrl-c.
