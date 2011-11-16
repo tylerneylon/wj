@@ -378,10 +378,19 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
       else:
         timeMarkChars = list("0-.%s" % timeMark[dotIndex + 1:])
   elif scope == "m":
-    if dotIndex > 2:
-      timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
+    if _userTimeMode == 'Greg':
+      ts = _timestampForMark(timeMark)
+      d = datetime.datetime.utcfromtimestamp(ts)
+      tm = d.timetuple()
+      d1 = d + datetime.timedelta(days=(1 - tm.tm_mday))
+      daysInMonth = calendar.monthrange(tm.tm_year, tm.tm_mon)[1]
+      d2 = d1 + datetime.timedelta(days=(daysInMonth - 1))
+      timeMarkChars = list("%s - %s" % tuple(map(_7dateForDateTime, [d1, d2])))
     else:
-      timeMarkChars = list("0--.%s" % timeMark[dotIndex + 1:])
+      if dotIndex > 2:
+        timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
+      else:
+        timeMarkChars = list("0--.%s" % timeMark[dotIndex + 1:])
   elif scope == "y":
     timeMarkChars = timeMarkChars[(dotIndex + 1):]
   else:

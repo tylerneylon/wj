@@ -63,6 +63,7 @@ testStrs = [["Jan, 1988", "0--.1988"],
             ["1-7 Jan 11", "0-.2011"],
             ["29 Jan - 4 Feb 1988", "4-.1988"]]
 
+wj._userTimeMode = '7date'
 for testCase in testStrs:
   mark = wj._markFromUserTimeStr(testCase[0])
   expectVsActual(testCase[1], mark, comment=testCase[0])
@@ -83,6 +84,18 @@ testStrs = [["0.2001", "1 Jan 2001"],
 for testCase in testStrs:
   userStr = wj._userStrForMark(testCase[0])
   expectVsActual(testCase[1], userStr, comment=testCase[0])
+
+# Tests for _fromDayToScope.
+
+# Test that Greg weeks are Monday-Sunday.
+dayMark = '633.2011'
+mark = wj._fromDayToScope(dayMark, 'w')
+expectVsActual('632.2011 - 641.2011', mark, comment=dayMark)
+
+# Test that Greg months are right.
+dayMark = '633.2011'
+mark = wj._fromDayToScope(dayMark, 'm')
+expectVsActual('613.2011 - 654.2011', mark, comment=dayMark)
 
 print "fortune smiles upon you... for now - all tests passed"
 exit(0)
