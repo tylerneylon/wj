@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
-# TODO NEXT
+# Next todo items
 # [x] List recent entries on interactive startup.
 # [x] Add suggestions for recent missing entries.
 # [x] Add an 'a' command in interactive mode to input all recent missing entries.
-# [ ] Make sure we can handle w,m,y actions.
+# [x] Make sure we can handle w,m,y actions.
 # [x] Add a command-line way to view more than just -r entries. (-l added)
 
-# TODO Eventually
+# Todo eventually
 # [x] Provide output with -o option.
 # [ ] Make sure everything works from the command line (non-interactive).
 # [x] Support configuration settings file in the .wj folder.
@@ -404,8 +404,7 @@ def _timestampForMark(timeMark):
 # which is seconds-since-epoch (compatible with
 # the output of time.time()).
 def _7dateForTime(timestamp=None):
-  if timestamp is None:
-    timestamp = time.time()
+  if timestamp is None: timestamp = time.time()
   tm = time.localtime(timestamp)
   return "%s.%d" % (_baseNString(7, tm.tm_yday - 1), tm.tm_year)
 
