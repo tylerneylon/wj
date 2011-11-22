@@ -12,7 +12,7 @@
 # [x] Make sure everything works from the command line (non-interactive).
 # [x] Support configuration settings file in the .wj folder.
 # [x] Support Gregorian dates.
-# [ ] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
+# [x] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
 # [ ] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
 # [ ] Exit more gracefully on ctrl-c.
 # [ ] Handle cross-year-boundary weeks.  Its timestamp should be at the end of the beginning year,
@@ -115,7 +115,7 @@ def handleArgs(args):
     msg = ' '.join(args[1:])
     addMessage(msg)
   else:
-    runInteractive()
+    runInteractive(parser)
 
 # TODO Move this comment somewhere more useful.
 # A timeMark is a string representing a time period we know about.
@@ -132,11 +132,11 @@ def addMessage(msg, timeMark=None):
     timeMark = currentDefaultTimeMark()
   _setMessage(msg, timeMark)
 
-def runInteractive():
+def runInteractive(parser):
   print "Work Journal (wj)"
   print "Recent messages:"
   showMessages(8)
-  showRecentMissingUserTimeStrs()
+  markList = showRecentMissingUserTimeStrs()
   print "---------------------------------"
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing"
   print "         specify [t]ime; [o]utput; [h]elp; [q]uit."
@@ -158,10 +158,16 @@ def runInteractive():
     # be sure to avoid code duplication with the
     # command-line version
     print texStringForYear()
+  elif actionChar.isdigit():
+    markIndex = int(actionChar)
+    if markIndex > len(markList) or markIndex == 0: return
+    mark = markList[markIndex - 1]
+    msg = raw_input("Enter message for %s: " % _userStrForMark(mark))
+    addMessage(msg, mark)
   elif actionChar == 'h':
-    pass
+    parser.print_help()
   elif actionChar == 'q':
-    print "Goodbye"
+    print "Goodbye!"
   else:
     # TODO add error-handling for unhandled characters
     pass
@@ -195,23 +201,28 @@ def showMessages(num=None):
     width = 25 if _userTimeMode == 'Greg' else 10
     print "%%-%ds %%s" % width % (_userStrForMark(mark), _yearMessages[mark])
 
+# Returns a list of marks the correspond to the user choosing a number.
 def showRecentMissingUserTimeStrs():
   global _yearMessages
   _loadYear()
   allRecent = _recentTimeMarks(8)
   msgRecent = sorted(_yearMessages, key=_timestampForMark)[-8:]
   str = "Missing messages: "
+  markList = []
   numMarks = 0
   for timeMark in allRecent:
     if timeMark not in msgRecent:
       if numMarks > 0: str += ", "
+      str += "[%d] " % (numMarks + 1)
       str += _userStrForMark(timeMark)
+      markList.append(timeMark)
       numMarks += 1
       if timeMark == _7dateForTime(time.time()):
         str += " (today)"
       elif timeMark == _7dateForTime(time.time() - 24 * 60 * 60):
         str += " (yesterday)"
   if numMarks > 0: print str
+  return markList
 
 def getAllRecentMissingMessages():
   global _yearMessages
