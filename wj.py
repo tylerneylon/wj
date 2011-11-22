@@ -7,17 +7,20 @@
 # [x] Make sure we can handle w,m,y actions.
 # [x] Add a command-line way to view more than just -r entries. (-l added)
 
-# Todo eventually
+# Todo for v1.0
 # [x] Provide output with -o option.
-# [ ] Make sure everything works from the command line (non-interactive).
+# [x] Make sure everything works from the command line (non-interactive).
 # [x] Support configuration settings file in the .wj folder.
 # [x] Support Gregorian dates.
 # [ ] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
 # [ ] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
 # [ ] Exit more gracefully on ctrl-c.
-# [ ] Simplify the week/month user string if month or year are the same.
 # [ ] Handle cross-year-boundary weeks.  Its timestamp should be at the end of the beginning year,
 #     which is an exception.
+# [ ] Make sure output works well with Gregorian data.
+
+# Todo after v1.0
+# [ ] Simplify the week/month user string if month or year are the same.
 
 # imports
 # =======
@@ -55,6 +58,7 @@ _userMonFormat = '%b %Y'
 #      easy from the command line should be privite.
 
 def handleArgs(args):
+  global _verbose
   parser = OptionParser()
   parser.add_option("-o", action="store", type="string",
                     dest="outfile",
@@ -67,6 +71,14 @@ def handleArgs(args):
   parser.add_option("-l", dest="listAll",
                     action="store_true",
                     help="show all messages")
+  parser.add_option("-d", dest="dayEntry", action="store_true",
+                    default=False, help="add a message for the most recent day")
+  parser.add_option("-w", dest="weekEntry", action="store_true",
+                    default=False, help="add a message for the most recent week")
+  parser.add_option("-m", dest="monthEntry", action="store_true",
+                    default=False, help="add a message for the most recent month")
+  parser.add_option("-y", dest="yearEntry", action="store_true",
+                    default=False, help="add a message for the most recent year")
   # TODO add options
   (options, args) = parser.parse_args(args)
   if options.listAll:
@@ -80,6 +92,24 @@ def handleArgs(args):
     f = open(options.outfile, 'w')
     f.write(texString)
     f.close()
+    return
+  scope = None
+  if options.dayEntry: scope = 'd'
+  if options.weekEntry: scope = 'w'
+  if options.monthEntry: scope = 'm'
+  if options.yearEntry: scope = 'y'
+  if scope:
+    _verbose = True
+    msg = ' '.join(args[1:])
+    mark = currentDefaultTimeMark(scope=scope)
+    addMessage(msg, mark)
+    return
+  if options.userTimeMark:
+    _verbose = True
+    msg = ' '.join(args[1:])
+    mark = _markFromUserTimeStr(options.userTimeMark)
+    addMessage(msg, mark)
+    # TODO What's the diff betw setMessage and addMessage?
     return
   if len(args) > 1:
     msg = ' '.join(args[1:])
@@ -156,12 +186,14 @@ def currentDefaultTimeMark(scope="d"):
 
 def showMessages(num=None):
   global _yearMessages
+  global _userTimeMode
   _loadYear()
   timeMarks = sorted(_yearMessages, key=_timestampForMark)
   if num:
     timeMarks = timeMarks[-num:] # Just keep the most recent num.
   for mark in timeMarks:
-    print "%10s %s" % (_userStrForMark(mark), _yearMessages[mark])
+    width = 25 if _userTimeMode == 'Greg' else 10
+    print "%%-%ds %%s" % width % (_userStrForMark(mark), _yearMessages[mark])
 
 def showRecentMissingUserTimeStrs():
   global _yearMessages
@@ -450,21 +482,19 @@ def _intFromBaseNString(n, str):
 def _yearFromTimeMark(timeMark):
   return timeMark.split(".")[-1]
 
-def _setMessage(msg, timeMark):
+def _setMessage(msg, mark):
   global _yearMessages
   global _yearLoaded
   global _verbose
-  year = _yearFromTimeMark(timeMark)
+  year = _yearFromTimeMark(mark)
   if _yearLoaded != year:
     _loadYear(year)
-  if _verbose and timeMark in _yearMessages:
+  if _verbose and mark in _yearMessages:
     print "replaced"
-    print "%s %s" % (timeMark, _yearMessages[timeMark])
+    print "%s %s" % (_userStrForMark(mark), _yearMessages[mark])
     print "with"
-  elif _verbose:
-    print "set"
-  if _verbose: print "%s %s" % (timeMark, msg)
-  _yearMessages[timeMark] = msg
+  if _verbose: print "%s %s" % (_userStrForMark(mark), msg)
+  _yearMessages[mark] = msg
   _saveMessages()
 
 def _loadYear(year=None):
@@ -521,8 +551,9 @@ def _loadConfig():
     if 'dateFormat' in config: _userDateFormat = config['dateFormat']
     f.close()
   finally:
-    # TODO TEMP DEBUG
-    print "=== Mode: %s ===" % _userTimeMode
+    # Uncomment the next line if needed for debugging.
+    #print "=== Mode: %s ===" % _userTimeMode
+    pass
 
 # TODO Be able to change user time modes, and call this
 #      to save it.
