@@ -21,6 +21,7 @@
 
 # Todo after v1.0
 # [ ] Simplify the week/month user string if month or year are the same.
+# [ ] Test with users and look for ease-of-use improvements.
 
 # imports
 # =======
