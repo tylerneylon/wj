@@ -13,8 +13,8 @@
 # [x] Support configuration settings file in the .wj folder.
 # [x] Support Gregorian dates.
 # [x] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
-# [ ] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
-# [ ] Exit more gracefully on ctrl-c.
+# [x] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
+# [x] Exit more gracefully on ctrl-c.
 # [ ] Handle cross-year-boundary weeks.  Its timestamp should be at the end of the beginning year,
 #     which is an exception.
 # [ ] Make sure output works well with Gregorian data.
@@ -801,8 +801,8 @@ def _userTimeStrFromMark(timeMark):
     print "ruh roh: unrecognized userTimeMode %s" % _userTimeMode
   return timeMark
 
-# utility functions
-# =================
+# input functions
+# ===============
 
 def _getch():
   fd = sys.stdin.fileno()
@@ -832,7 +832,11 @@ def _getch():
 _loadConfig()  # Load config whether this is an import or an execution.
 
 if __name__ ==  "__main__":
-  handleArgs(sys.argv)
+  try:
+    handleArgs(sys.argv)
+  except KeyboardInterrupt:
+    print "\nCheerio!"
+    exit(1)
   _saveConfig()
   # TODO HERE
   # I'm currently working on getting everything to run smoothly in Gregorian mode.
