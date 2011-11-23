@@ -414,7 +414,7 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
       d = datetime.datetime.utcfromtimestamp(ts)
       d1 = d + datetime.timedelta(days=(-1 * d.weekday()))
       d2 = d1 + datetime.timedelta(days=6)
-      timeMarkChars = list("%s - %s" % tuple(map(_7dateForDateTime, [d1, d2])))
+      timeMarkChars = list("%s - %s" % tuple(map(_7dateForDatetime, [d1, d2])))
     else:
       if dotIndex > 1:
         timeMarkChars[dotIndex - 1] = '-'
@@ -428,7 +428,7 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
       d1 = d + datetime.timedelta(days=(1 - tm.tm_mday))
       daysInMonth = calendar.monthrange(tm.tm_year, tm.tm_mon)[1]
       d2 = d1 + datetime.timedelta(days=(daysInMonth - 1))
-      timeMarkChars = list("%s - %s" % tuple(map(_7dateForDateTime, [d1, d2])))
+      timeMarkChars = list("%s - %s" % tuple(map(_7dateForDatetime, [d1, d2])))
     else:
       if dotIndex > 2:
         timeMarkChars[(dotIndex - 2):dotIndex] = list('--')
@@ -453,7 +453,7 @@ def _7dateForTime(timestamp=None):
 
 # Assumes the datetime is naive (has no timezone info),
 # and is given UTC for the date in mind.
-def _7dateForDateTime(dt):
+def _7dateForDatetime(dt):
   return _7dateForTime(calendar.timegm(dt.timetuple()))
 
 # The inverse of _7dateForTime.
@@ -538,7 +538,7 @@ def _recentTimeMarks(n):
   markSet = set([_7dateForTime(timestamp - i * oneDay) for i in range(n)])
   markSet |= set([_fromDayToScope(i, scope) for i in markSet for scope in ["w", "m", "y"]])
   marks = sorted(markSet, key=_timestampForMark)
-  nonFutureMarks = [m for m in marks if _timestampForMark(m) < timestamp]
+  nonFutureMarks = [m for m in marks if _timestampForMark(m) + time.timezone < timestamp]
   return nonFutureMarks[-8:]
 
 # We expect year as a string.
