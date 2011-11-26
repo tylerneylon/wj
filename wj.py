@@ -154,10 +154,10 @@ def runInteractive(parser):
   elif actionChar == 'a':
     getAllRecentMissingMessages()
   elif actionChar == 'o':
-    # TODO Input a filename and save to that file.
-    # be sure to avoid code duplication with the
-    # command-line version
-    print texStringForYear()
+    filename = raw_input("Filename: ")
+    f = open(filename, 'w')
+    f.write(texStringForYear())
+    f.close()
   elif actionChar.isdigit():
     markIndex = int(actionChar)
     if markIndex > len(markList) or markIndex == 0: return
@@ -172,6 +172,7 @@ def runInteractive(parser):
     # TODO add error-handling for unhandled characters
     pass
 
+# TODO drop this if I'm not using it
 # Open an editor to get the latest message.
 def getMessage():
   pass
