@@ -15,9 +15,8 @@
 # [x] In interactive mode, accept numbers 1,2,.. at the menu for missing marks.
 # [x] Be careful about not showing today's mark before noon.  I thought I saw this happen today.
 # [x] Exit more gracefully on ctrl-c.
-# [ ] Handle cross-year-boundary weeks.  Its timestamp should be at the end of the beginning year,
-#     which is an exception.
-# [ ] Make sure output works well with Gregorian data.
+# [x] Handle cross-year-boundary weeks.
+# [x] Make sure output works well with Gregorian data.
 
 # Todo after v1.0
 # [ ] Simplify the week/month user string if month or year are the same.
@@ -251,6 +250,21 @@ def getUserTimeStrAndMessage():
   msg = raw_input("Enter message for %s: " % _userStrForMark(timeMark))
   addMessage(msg, timeMark)
 
+def texMonthStr(mark):
+  global _userTimeMode
+  global _userMonFormat
+  if _userTimeMode == '7date':
+    return mark[:mark.find('-')] + "."
+  if _userTimeMode == 'Greg':
+    return _userStrForMark(mark)
+
+def texWeekStr(mark):
+  global _userTimeMode
+  if _userTimeMode == '7date':
+    return mark[:mark.find('-')] + "."
+  if _userTimeMode == 'Greg':
+    return _userStrForMark(mark)
+
 def texStringForYear(year=None):
   global _yearLoaded
   _loadYear(year)
@@ -266,14 +280,12 @@ def texStringForYear(year=None):
     elif scope == "m":
       monthMarks.append(timeMark)
   for mark in monthMarks:
-    monthNum = int(mark[:mark.find('-')])
     msg = _escForTex(_yearMessages[mark])
-    strPieces.append(texMonthLine % (monthNum, msg))
+    strPieces.append(texMonthLine % (texMonthStr(mark), msg))
   strPieces.append(texMiddle)
   for mark in weekMarks:
-    weekNum = int(mark[:mark.find('-')])
     msg = _escForTex(_yearMessages[mark])
-    strPieces.append(texMonthLine % (weekNum, msg))
+    strPieces.append(texMonthLine % (texWeekStr(mark), msg))
   strPieces.append(texEnd)
   return '\n'.join(strPieces)
 
@@ -305,7 +317,7 @@ texBegin = """
 """
 
 # Input is (monthNum, msg).
-texMonthLine = "{\\bf %d.}  %s\n"
+texMonthLine = "{\\bf %s}  %s\n"
 
 texMiddle = """
 \\bigskip
