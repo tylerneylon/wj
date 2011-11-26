@@ -343,7 +343,7 @@ def _scopeForMark(timeMark):
     [ts1, ts2] = _firstLastTimesForMark(timeMark)
     if not ts1 or not ts2: return None
     numDays = (ts2 - ts1) / (60 * 60 * 24) + 1
-    if 6 < numDays < 8: return 'w'
+    if numDays < 8: return 'w'
     if 27 < numDays < 50: return 'm'
     return None
   scopeExpr = [[r"\d+$", "y"],
@@ -415,6 +415,8 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
       d = datetime.datetime.utcfromtimestamp(ts)
       d1 = d + datetime.timedelta(days=(-1 * d.weekday()))
       d2 = d1 + datetime.timedelta(days=6)
+      if d1.year != d2.year and d.year == d1.year: d2 = d1.replace(day=31)
+      if d1.year != d2.year and d.year == d2.year: d1 = d2.replace(day=1)
       timeMarkChars = list("%s - %s" % tuple(map(_7dateForDatetime, [d1, d2])))
     else:
       if dotIndex > 1:
