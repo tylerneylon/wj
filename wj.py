@@ -39,8 +39,8 @@ import time
 # globals
 # =======
 
-_yearMessages = None
-_yearLoaded = None
+_yearMessages = {}
+_yearsLoaded = []
 _verbose = False
 
 # These are overridden by .wj/config's value, if it exists.
@@ -267,10 +267,14 @@ def texWeekStr(mark):
     return _userStrForMark(mark)
 
 def texStringForYear(year=None):
-  global _yearLoaded
+  global _yearMessages
+  global _yearsLoaded
+  if year is None: year = str(time.localtime().tm_year)
+  _yearMessages = {}
+  _yearsLoaded = []
   _loadYear(year)
-  msg = _yearMessages[_yearLoaded] if _yearLoaded in _yearMessages else ""
-  strPieces = [texBegin % (int(_yearLoaded), msg)]
+  msg = _yearMessages[year] if year in _yearMessages else ""
+  strPieces = [texBegin % (int(year), msg)]
   timeMarks = sorted(_yearMessages, key=_timestampForMark)
   monthMarks = []
   weekMarks = []
@@ -511,10 +515,10 @@ def _yearFromTimeMark(timeMark):
 
 def _setMessage(msg, mark):
   global _yearMessages
-  global _yearLoaded
+  global _yearsLoaded
   global _verbose
   year = _yearFromTimeMark(mark)
-  if _yearLoaded != year:
+  if year not in _yearsLoaded:
     _loadYear(year)
   if _verbose and mark in _yearMessages:
     print "replaced"
@@ -524,27 +528,41 @@ def _setMessage(msg, mark):
   _yearMessages[mark] = msg
   _saveMessages()
 
+def _loadYearIfExists(year):
+  filename = _fileForYear(year)
+  if year not in _yearsLoaded: _yearsLoaded.append(year)
+  if not os.path.isfile(filename): return
+  file = open(filename, 'r')
+  _yearMessages.update(pickle.load(file))
+  file.close()
+
 def _loadYear(year=None):
   global _yearMessages
-  global _yearLoaded
-  # TODO also load previous year if needed
-  if year is None: year = str(time.localtime().tm_year)
-  filename = _fileForYear(year)
-  _yearLoaded = year
-  if not os.path.isfile(filename):
-    _yearMessages = {}
-  else:
-    file = open(filename, 'r')
-    _yearMessages = pickle.load(file)
-    file.close()
+  global _yearsLoaded
+  if year is None:
+    year = str(time.localtime().tm_year)
+    _loadYearIfExists(year)
+    year = str(int(year) - 1)
+  _loadYearIfExists(year)
 
 def _saveMessages():
   global _yearMessages
+  global _yearsLoaded
   if not os.path.exists(_wjDir()):
     os.mkdir(_wjDir())
-  file = open(_fileForYear(_yearLoaded), 'w+')
-  pickle.dump(_yearMessages, file, pickle.HIGHEST_PROTOCOL)
-  file.close()
+  for year in _yearsLoaded:
+    file = open(_fileForYear(year), 'w+')
+    messages = _subsetOfMessagesForYear(year)
+    pickle.dump(messages, file, pickle.HIGHEST_PROTOCOL)
+    file.close()
+
+def _subsetOfMessagesForYear(year):
+  global _yearMessages
+  subMessages = {}
+  for mark in _yearMessages:
+    if _yearFromTimeMark(mark) == year:
+      subMessages[mark] = _yearMessages[mark]
+  return subMessages
 
 # This returns a list of all possible recent time marks,
 # regardless of whether or not the user has any messages for them.
