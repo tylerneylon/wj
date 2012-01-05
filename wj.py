@@ -61,7 +61,7 @@ def handleArgs(args):
   global _verbose
   parser = OptionParser()
   parser.add_option("-o", action="store", type="string",
-                    dest="outfile",
+                    dest="outfile", nargs=2, metavar="<year> <filename>",
                     help="generate a tex file with recent messages")
   parser.add_option("-t", dest="userTimeMark",
                     help="add a message for the specified time unit")
@@ -79,7 +79,6 @@ def handleArgs(args):
                     default=False, help="add a message for the most recent month")
   parser.add_option("-y", dest="yearEntry", action="store_true",
                     default=False, help="add a message for the most recent year")
-  # TODO add options
   (options, args) = parser.parse_args(args)
   if options.listAll:
     showMessages()  # TODO make this an option in interactive mode
@@ -88,8 +87,8 @@ def handleArgs(args):
     showMessages(8)
     return
   if options.outfile:
-    texString = texStringForYear()
-    f = open(options.outfile, 'w')
+    texString = texStringForYear(options.outfile[0])
+    f = open(options.outfile[1], 'w')
     f.write(texString)
     f.close()
     return
@@ -154,9 +153,10 @@ def runInteractive(parser):
   elif actionChar == 'a':
     getAllRecentMissingMessages()
   elif actionChar == 'o':
+    year = str(_yearFromStr(raw_input("Year: ")))
     filename = raw_input("Filename: ")
     f = open(filename, 'w')
-    f.write(texStringForYear())
+    f.write(texStringForYear(year))
     f.close()
   elif actionChar.isdigit():
     markIndex = int(actionChar)
