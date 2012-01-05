@@ -59,11 +59,18 @@ _userMonFormat = '%b %Y'
 
 def handleArgs(args):
   global _verbose
-  parser = OptionParser()
+  myName = sys.argv[0].split('/')[-1]
+  usage = """%s [-dwmy] message...      # Add message for most recent day/week/month/year; default=day.
+       %s -t <time> message...    # Add message for a given <time> (day/week/month/year).
+       %s -o <year> <filename>    # Output a tex file <filename> for the given <year>.
+       %s -[r|l]                  # List <r>ecent, or <l>ist all, messages.
+       %s                         # Run in interactive mode."""
+  usage = usage % (myName, myName, myName, myName, myName)
+  parser = OptionParser(usage=usage)
   parser.add_option("-o", action="store", type="string",
                     dest="outfile", nargs=2, metavar="<year> <filename>",
                     help="generate a tex file with recent messages")
-  parser.add_option("-t", dest="userTimeMark",
+  parser.add_option("-t", dest="userTimeMark", metavar="<time>",
                     help="add a message for the specified time unit")
   parser.add_option("-r", dest="showRecent",
                     action="store_true",
