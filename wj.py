@@ -18,8 +18,11 @@
 # [x] Handle cross-year-boundary weeks.
 # [x] Make sure output works well with Gregorian data.
 
-# Todo after v1.0
-# [ ] Simplify the week/month user string if month or year are the same.
+# Todo next
+# [ ] For (7)months, show previous week summaries.
+# [ ] Don't show today as a missing message until the day is basically over.
+
+# Would be good to do
 # [ ] Test with users and look for ease-of-use improvements.
 
 # imports
