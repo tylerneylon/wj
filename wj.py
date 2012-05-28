@@ -20,6 +20,7 @@
 
 # Todo next
 # [ ] For (7)months, show previous week summaries.
+# [ ] Make it easy to see week-only or month-only summaries using -l or -r.
 # [ ] Don't show today as a missing message until the day is basically over.
 
 # Would be good to do
