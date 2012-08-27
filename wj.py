@@ -22,6 +22,7 @@
 # [ ] For (7)months, show previous week summaries.
 # [ ] Make it easy to see week-only or month-only summaries using -l or -r.
 # [ ] Don't show today as a missing message until the day is basically over.
+# [ ] Support a custom data directory; I want my data in my dropbox.
 
 # Would be good to do
 # [ ] Test with users and look for ease-of-use improvements.
