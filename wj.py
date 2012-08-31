@@ -18,8 +18,14 @@
 # [x] Handle cross-year-boundary weeks.
 # [x] Make sure output works well with Gregorian data.
 
-# Todo after v1.0
-# [ ] Simplify the week/month user string if month or year are the same.
+# Todo next
+# [ ] For (7)months, show previous week summaries.
+# [ ] Make it easy to see week-only or month-only summaries using -l or -r.
+# [X] Don't show today as a missing message until the day is basically over.
+# [ ] Support a custom data directory; I want my data in my dropbox.
+# [ ] Use readline for message input.
+
+# Would be good to do
 # [ ] Test with users and look for ease-of-use improvements.
 
 # imports
@@ -219,15 +225,14 @@ def showRecentMissingUserTimeStrs():
   markList = []
   numMarks = 0
   for timeMark in allRecent:
-    if timeMark not in msgRecent:
+    # We omit today as a missing message.
+    if timeMark not in msgRecent and timeMark != _7dateForTime(time.time()):
       if numMarks > 0: str += ", "
       str += "[%d] " % (numMarks + 1)
       str += _userStrForMark(timeMark)
       markList.append(timeMark)
       numMarks += 1
-      if timeMark == _7dateForTime(time.time()):
-        str += " (today)"
-      elif timeMark == _7dateForTime(time.time() - 24 * 60 * 60):
+      if timeMark == _7dateForTime(time.time() - 24 * 60 * 60):
         str += " (yesterday)"
   if numMarks > 0: print str
   return markList
