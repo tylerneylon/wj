@@ -19,9 +19,9 @@
 # [x] Make sure output works well with Gregorian data.
 
 # Todo next
-# [ ] For (7)months, show previous week summaries.
+# [x] For (7)months, show previous week summaries.
 # [ ] Make it easy to see week-only or month-only summaries using -l or -r.
-# [X] Don't show today as a missing message until the day is basically over.
+# [x] Don't show today as a missing message until the day is basically over.
 # [ ] Support a custom data directory; I want my data in my dropbox.
 # [ ] Use readline for message input.
 
@@ -146,9 +146,12 @@ def addMessage(msg, timeMark=None):
 
 def runInteractive(parser):
   print "Work Journal (wj)"
+  markList, recentStr = recentMissingUserTimeStrs()
+  months = [m for m in markList if _scopeForMark(m) == "m"]
+  monthMark = months[-1] if months else None
   print "Recent messages:"
-  showMessages(8)
-  markList = showRecentMissingUserTimeStrs()
+  showMessages(8, monthMark)
+  print recentStr
   print "---------------------------------"
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing"
   print "         specify [t]ime; [o]utput; [h]elp; [q]uit."
@@ -204,19 +207,26 @@ def currentDefaultTimeMark(scope="d"):
   timeMark = _7dateForTime(timestamp)
   return _fromDayToScope(timeMark, scope)
 
-def showMessages(num=None):
+def showMessages(num=None, showWeeksForMonthMark=None):
   global _yearMessages
   global _userTimeMode
   _loadYear()
   timeMarks = sorted(_yearMessages, key=_timestampForMark)
   if num:
-    timeMarks = timeMarks[-num:] # Just keep the most recent num.
+    weekMarks = []
+    if showWeeksForMonthMark:
+      [ts1, ts2] = _firstLastTimesForMark(showWeeksForMonthMark)
+      def wantedMark(m):
+        return (_scopeForMark(m) == "w" and ts1 <= _timestampForMark(m) <= ts2)
+      weekMarks = [m for m in timeMarks if wantedMark(m)]
+    markSet = set(weekMarks + timeMarks[-num:])  # Keep the most recent num.
+    timeMarks = sorted(markSet, key=_timestampForMark)
   for mark in timeMarks:
     width = 25 if _userTimeMode == 'Greg' else 10
     print "%%-%ds %%s" % width % (_userStrForMark(mark), _yearMessages[mark])
 
-# Returns a list of marks the correspond to the user choosing a number.
-def showRecentMissingUserTimeStrs():
+# Returns marks, str; marks=list(timemarks), str=string to display.
+def recentMissingUserTimeStrs():
   global _yearMessages
   _loadYear()
   allRecent = _recentTimeMarks(8)
@@ -234,8 +244,7 @@ def showRecentMissingUserTimeStrs():
       numMarks += 1
       if timeMark == _7dateForTime(time.time() - 24 * 60 * 60):
         str += " (yesterday)"
-  if numMarks > 0: print str
-  return markList
+  return markList, str
 
 def getAllRecentMissingMessages():
   global _yearMessages
@@ -428,7 +437,6 @@ def _firstLastTimesForMark(mark):
   if 27 < numDays < 50: times[1] += 2 * hour  # month
   return times
 
-# TODO HERE
 def _fromDayToScope(timeMark, scope="d", inputMode=None):
   global _userTimeMode
   if inputMode and scope in ["w", "m"] and inputMode != _userTimeMode:
