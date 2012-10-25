@@ -24,6 +24,15 @@
 # [x] Don't show today as a missing message until the day is basically over.
 # [ ] Support a custom data directory; I want my data in my dropbox.
 # [ ] Use readline for message input.
+# [ ] Be able to list all missing messages from a given year from the command line.
+# [ ] Bug: might ask for today's update even if not showing that 7date as missing;
+#     see "wj bug.png" in ~/Desktop/stuff.
+
+# Future todo
+# [ ] Recent missing messages should go farther back in time.
+# [ ] In interactive mode, before asking for a non-day message, display all
+#     finer-grain messages included in it, and the previous same-grain message.
+# [ ] Easy to list messages at a certain granularity.
 
 # Would be good to do
 # [ ] Test with users and look for ease-of-use improvements.
