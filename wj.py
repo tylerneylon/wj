@@ -27,12 +27,14 @@
 # [ ] Be able to list all missing messages from a given year from the command line.
 # [ ] Bug: might ask for today's update even if not showing that 7date as missing;
 #     see "wj bug.png" in ~/Desktop/stuff.
+# [ ] When getting a year message, show all month summaries.
 
 # Future todo
 # [ ] Recent missing messages should go farther back in time.
 # [ ] In interactive mode, before asking for a non-day message, display all
 #     finer-grain messages included in it, and the previous same-grain message.
 # [ ] Easy to list messages at a certain granularity.
+# [ ] Be able to list all missing messages for a given year from command line.
 
 # Would be good to do
 # [ ] Test with users and look for ease-of-use improvements.
