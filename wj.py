@@ -28,6 +28,7 @@
 # [ ] Bug: might ask for today's update even if not showing that 7date as missing;
 #     see "wj bug.png" in ~/Desktop/stuff.
 # [ ] When getting a year message, show all month summaries.
+# [ ] Bug: wj -l isn't listing 2011 for me; it is now 2013.
 
 # Future todo
 # [ ] Recent missing messages should go farther back in time.
