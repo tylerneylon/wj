@@ -37,6 +37,7 @@
 # [ ] Easy to list messages at a certain granularity.
 # [ ] Be able to list all missing messages for a given year from command line.
 # [ ] Say 'No missing messages' if there are none.
+# [ ] Add -? as a help option.
 
 # Would be good to do
 # [ ] Test with users and look for ease-of-use improvements.
