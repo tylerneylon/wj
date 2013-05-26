@@ -263,8 +263,8 @@ def recentMissingUserTimeStrs():
 def getAllRecentMissingMessages():
   global _yearMessages
   _loadYear()
-  allRecent = _recentTimeMarks(8)
-  msgRecent = sorted(_yearMessages, key=_timestampForMark)[-8:]
+  allRecent = _recentTimeMarks(12)
+  msgRecent = sorted(_yearMessages, key=_timestampForMark)[-12:]
   for timeMark in allRecent:
     if timeMark not in msgRecent:
       msg = raw_input("Enter message for %s: " % _userStrForMark(timeMark))
