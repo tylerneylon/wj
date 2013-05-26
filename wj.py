@@ -31,7 +31,7 @@
 # [ ] Bug: wj -l isn't listing 2011 for me; it is now 2013.
 
 # Future todo
-# [ ] Recent missing messages should go farther back in time.
+# [x] Recent missing messages should go farther back in time.
 # [ ] In interactive mode, before asking for a non-day message, display all
 #     finer-grain messages included in it, and the previous same-grain message.
 # [ ] Easy to list messages at a certain granularity.
@@ -243,8 +243,8 @@ def showMessages(num=None, showWeeksForMonthMark=None):
 def recentMissingUserTimeStrs():
   global _yearMessages
   _loadYear()
-  allRecent = _recentTimeMarks(8)
-  msgRecent = sorted(_yearMessages, key=_timestampForMark)[-8:]
+  allRecent = _recentTimeMarks(12)
+  msgRecent = sorted(_yearMessages, key=_timestampForMark)[-12:]
   str = "Missing messages: "
   markList = []
   numMarks = 0
@@ -607,7 +607,7 @@ def _recentTimeMarks(n):
   markSet |= set([_fromDayToScope(i, scope) for i in markSet for scope in ["w", "m", "y"]])
   marks = sorted(markSet, key=_timestampForMark)
   nonFutureMarks = [m for m in marks if _timestampForMark(m) + time.timezone < timestamp]
-  return nonFutureMarks[-8:]
+  return nonFutureMarks[-n:]
 
 # We expect year as a string.
 def _fileForYear(year):
