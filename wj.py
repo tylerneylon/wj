@@ -349,7 +349,7 @@ texBegin = """
 
 \\centerline{\\LARGE\\bf %d}
 \\bigskip
-\\centerline{%s}
+\\centerline{\\vbox{%s}}
 
 \\vspace{1cm}
 
