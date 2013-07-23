@@ -163,8 +163,10 @@ def runInteractive(parser):
   markList, recentStr = recentMissingUserTimeStrs()
   months = [m for m in markList if _scopeForMark(m) == "m"]
   monthMark = months[-1] if months else None
+  weeks = [w for w in markList if _scopeForMark(m) == "w"]
+  weekMark = weeks[-1] if weeks else None
   print "Recent messages:"
-  showMessages(8, monthMark)
+  showMessages(8, monthMark, weekMark)
   print recentStr
   print "---------------------------------"
   print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing"
@@ -221,7 +223,7 @@ def currentDefaultTimeMark(scope="d"):
   timeMark = _7dateForTime(timestamp)
   return _fromDayToScope(timeMark, scope)
 
-def showMessages(num=None, showWeeksForMonthMark=None):
+def showMessages(num=None, showWeeksForMonthMark=None, showWeekBeforeMark=None):
   global _yearMessages
   global _userTimeMode
   _loadYear()
@@ -233,6 +235,13 @@ def showMessages(num=None, showWeeksForMonthMark=None):
       def wantedMark(m):
         return (_scopeForMark(m) == "w" and ts1 <= _timestampForMark(m) <= ts2)
       weekMarks = [m for m in timeMarks if wantedMark(m)]
+    if showWeekBeforeMark:
+      [ts1, ts2] = _firstLastTimesForMark(showWeekBeforeMark)
+      for m in timeMarks:
+        if _scopeForMark(m) != "w": continue
+        t = _firstLastTimesForMark(m)[1]
+        if t < ts1 and ts1 - t < 60 * 60 * 48:
+          weekMarks.append(m)
     markSet = set(weekMarks + timeMarks[-num:])  # Keep the most recent num.
     timeMarks = sorted(markSet, key=_timestampForMark)
   for mark in timeMarks:
