@@ -253,7 +253,10 @@ def recentMissingUserTimeStrs():
   global _yearMessages
   _loadYear()
   allRecent = _recentTimeMarks(12)
-  msgRecent = sorted(_yearMessages, key=_timestampForMark)[-12:]
+  # Get a couple more recent messages than all recent in order to allow for
+  # users who fill in some data ahead of time. In theory, a user could still
+  # fool this by filling in many days ahead of time.
+  msgRecent = sorted(_yearMessages, key=_timestampForMark)[-16:]
   str = "Missing messages: "
   markList = []
   numMarks = 0
