@@ -651,7 +651,9 @@ def _loadConfig():
 def _saveConfig():
   global _userTimeMode
   global _userDateFormat
-  f = open(_wjDir() + 'config', 'w')
+  wjdir = _wjDir()
+  if not os.path.isdir(wjdir): os.mkdir(wjdir)
+  f = open(wjdir + 'config', 'w')
   f.write("# Config file for wj.\n")
   f.write("# File format: the string representation of a python dictionary.\n")
   f.write("# dateFormat uses the codes specified on this page:\n")
