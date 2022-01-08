@@ -27,6 +27,9 @@
 # [ ] Be able to list all missing messages from a given year from the command line.
 # [ ] Bug: might ask for today's update even if not showing that 7date as missing;
 #     see "wj bug.png" in ~/Desktop/stuff.
+# [ ] Bug: might ask for this _week_'s update before it asks for the update of
+#     the last day in the week. I saw this after 10pm on the last day of the
+#     week.
 # [ ] When getting a year message, show all month summaries.
 # [ ] Bug: wj -l isn't listing 2011 for me; it is now 2013.
 
