@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # Next todo items
 # [x] List recent entries on interactive startup.
@@ -49,15 +49,19 @@
 # =======
 
 import calendar
+import curses
 import datetime
 import fcntl
-from optparse import OptionParser
 import os
 import pickle
 import re
 import sys
 import termios
 import time
+import tty
+
+from optparse import OptionParser
+
 
 # globals
 # =======
@@ -162,34 +166,34 @@ def addMessage(msg, timeMark=None):
   _setMessage(msg, timeMark)
 
 def runInteractive(parser):
-  print "Work Journal (wj)"
+  print("Work Journal (wj)")
   markList, recentStr = recentMissingUserTimeStrs()
   months = [m for m in markList if _scopeForMark(m) == "m"]
   monthMark = months[-1] if months else None
-  weeks = [w for w in markList if _scopeForMark(m) == "w"]
+  weeks = [m for m in markList if _scopeForMark(m) == "w"]
   weekMark = weeks[-1] if weeks else None
-  print "Recent messages:"
+  print("Recent messages:")
   showMessages(8, monthMark, weekMark)
-  print recentStr
-  print "---------------------------------"
-  print "Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing"
-  print "         specify [t]ime; [o]utput; [h]elp; [q]uit."
-  print "What would you like to do? [dwmyatohq]"
+  print(recentStr)
+  print("---------------------------------")
+  print("Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing")
+  print("         specify [t]ime; [o]utput; [h]elp; [q]uit.")
+  print("What would you like to do? [dwmyatohq]")
   actionChar = _getch()
   messageChars = ['d', 'w', 'm', 'y']
   if actionChar in messageChars:
-    print "Today is %s" % _userDateForTime()
+    print("Today is %s" % _userDateForTime())
     timeMark = currentDefaultTimeMark(scope=actionChar)
-    msg = raw_input("Enter message for %s: " % _userStrForMark(timeMark))
+    msg = input("Enter message for %s: " % _userStrForMark(timeMark))
     addMessage(msg, timeMark)
   elif actionChar == 't':
-    print "Today is %s" % _userDateForTime()
+    print("Today is %s" % _userDateForTime())
     getUserTimeStrAndMessage()
   elif actionChar == 'a':
     getAllRecentMissingMessages()
   elif actionChar == 'o':
-    year = str(_yearFromStr(raw_input("Year: ")))
-    filename = raw_input("Filename: ")
+    year = str(_yearFromStr(input("Year: ")))
+    filename = input("Filename: ")
     f = open(filename, 'w')
     f.write(texStringForYear(year))
     f.close()
@@ -197,12 +201,12 @@ def runInteractive(parser):
     markIndex = int(actionChar)
     if markIndex > len(markList) or markIndex == 0: return
     mark = markList[markIndex - 1]
-    msg = raw_input("Enter message for %s: " % _userStrForMark(mark))
+    msg = input("Enter message for %s: " % _userStrForMark(mark))
     addMessage(msg, mark)
   elif actionChar == 'h':
     parser.print_help()
   elif actionChar == 'q':
-    print "Goodbye!"
+    print("Goodbye!")
   else:
     # TODO add error-handling for unhandled characters
     pass
@@ -249,7 +253,7 @@ def showMessages(num=None, showWeeksForMonthMark=None, showWeekBeforeMark=None):
     timeMarks = sorted(markSet, key=_timestampForMark)
   for mark in timeMarks:
     width = 25 if _userTimeMode == 'Greg' else 10
-    print "%%-%ds %%s" % width % (_userStrForMark(mark), _yearMessages[mark])
+    print("%%-%ds %%s" % width % (_userStrForMark(mark), _yearMessages[mark]))
 
 # Returns marks, str; marks=list(timemarks), str=string to display.
 def recentMissingUserTimeStrs():
@@ -282,7 +286,7 @@ def getAllRecentMissingMessages():
   msgRecent = sorted(_yearMessages, key=_timestampForMark)[-12:]
   for timeMark in allRecent:
     if timeMark not in msgRecent:
-      msg = raw_input("Enter message for %s: " % _userStrForMark(timeMark))
+      msg = input("Enter message for %s: " % _userStrForMark(timeMark))
       addMessage(msg, timeMark)
 
 def getUserTimeStrAndMessage():
@@ -290,15 +294,15 @@ def getUserTimeStrAndMessage():
   timestamp = None
   while timestamp is None:
     if _userTimeMode == '7date':
-      print "Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), 2025 (year)"
+      print("Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), 2025 (year)")
     else:
-      print "Formats: 1/30/99 or 30 Jan 1999 (day), <day> - <day> (week), Jan 1999 (month), 1999 (year)"
-    userTimeStr = raw_input("Enter time: ")
+      print("Formats: 1/30/99 or 30 Jan 1999 (day), <day> - <day> (week), Jan 1999 (month), 1999 (year)")
+    userTimeStr = input("Enter time: ")
     timeMark = _markFromUserTimeStr(userTimeStr)
     timestamp = _timestampForMark(timeMark)
     if timestamp is None:
-      print "Couldn't parse that time."
-  msg = raw_input("Enter message for %s: " % _userStrForMark(timeMark))
+      print("Couldn't parse that time.")
+  msg = input("Enter message for %s: " % _userStrForMark(timeMark))
   addMessage(msg, timeMark)
 
 def texMonthStr(mark):
@@ -459,7 +463,7 @@ def _firstLastTimesForMark(mark):
   # Confirm both dayMarks are valid day marks.
   if any([s != 'd' for s in map(_scopeForMark, dayMarks)]):
     return [None, None]
-  times = map(_timestampFor7date, dayMarks)
+  times = list(map(_timestampFor7date, dayMarks))
   times = [t + 12 * hour for t in times]
   numDays = (times[1] - times[0]) / (60 * 60 * 24) + 1
   if 6 < numDays < 8: times[1] += hour  # week
@@ -470,7 +474,7 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
   global _userTimeMode
   if inputMode and scope in ["w", "m"] and inputMode != _userTimeMode:
     warn = "Warning: non-%s input provided while in %s mode"
-    print warn % (_userTimeMode, _userTimeMode)
+    print(warn % (_userTimeMode, _userTimeMode))
   timeMarkChars = list(timeMark)
   dotIndex = timeMark.find('.')
   if scope == "d":
@@ -544,10 +548,10 @@ def _baseNString(n, i):
   reverseDigits = []
   while i > 0:
     reverseDigits.append(i % n)
-    i /= n
+    i //= n
   s = ""
   while len(reverseDigits):
-    s += `reverseDigits.pop()`
+    s += repr(reverseDigits.pop())
   return s
 
 # Complement to _baseNString.
@@ -570,10 +574,10 @@ def _setMessage(msg, mark):
   if year not in _yearsLoaded:
     _loadYear(year)
   if _verbose and mark in _yearMessages:
-    print "replaced"
-    print "%s %s" % (_userStrForMark(mark), _yearMessages[mark])
-    print "with"
-  if _verbose: print "%s %s" % (_userStrForMark(mark), msg)
+    print("replaced")
+    print("%s %s" % (_userStrForMark(mark), _yearMessages[mark]))
+    print("with")
+  if _verbose: print("%s %s" % (_userStrForMark(mark), msg))
   _yearMessages[mark] = msg
   _saveMessages()
 
@@ -581,7 +585,7 @@ def _loadYearIfExists(year):
   filename = _fileForYear(year)
   if year not in _yearsLoaded: _yearsLoaded.append(year)
   if not os.path.isfile(filename): return
-  file = open(filename, 'r')
+  file = open(filename, 'rb')
   _yearMessages.update(pickle.load(file))
   file.close()
 
@@ -600,7 +604,7 @@ def _saveMessages():
   if not os.path.exists(_wjDir()):
     os.mkdir(_wjDir())
   for year in _yearsLoaded:
-    file = open(_fileForYear(year), 'w+')
+    file = open(_fileForYear(year), 'wb')
     messages = _subsetOfMessagesForYear(year)
     pickle.dump(messages, file, pickle.HIGHEST_PROTOCOL)
     file.close()
@@ -638,7 +642,7 @@ def _loadConfig():
   try:
     try:
       f = open(_wjDir() + 'config')
-    except IOError, e:
+    except IOError as e:
       return
     config = eval(f.read())
     if 'timeMode' in config: _userTimeMode = config['timeMode']
@@ -662,7 +666,7 @@ def _saveConfig():
   f.write("# dateFormat uses the codes specified on this page:\n")
   f.write("# http://docs.python.org/library/time.html#time.strftime\n")
   config = {'timeMode':_userTimeMode,'dateFormat':_userDateFormat}
-  f.write(`config` + "\n")
+  f.write(repr(config) + "\n")
   f.close()
 
 # user time functions
@@ -687,13 +691,13 @@ def _userStrForMark(mark):
   if scope == 'd': return _userDateForTime(_timestampForMark(mark))
   if scope == 'w': return "%s - %s" % tuple(map(_userDateForTime, times))
   if scope == 'm':
-    [tm1, tm2] = map(time.localtime, _firstLastTimesForMark(mark))
+    [tm1, tm2] = list(map(time.localtime, _firstLastTimesForMark(mark)))
     if tm1.tm_mon != tm2.tm_mon or tm1.tm_mday > 1:
       return "%s - %s" % tuple(map(_userDateForTime, times))
     else:
       return time.strftime(_userMonFormat, tm1)
   if scope == 'y': return mark
-  print "Warning: Failed to parse the timeMark %s" % mark
+  print("Warning: Failed to parse the timeMark %s" % mark)
   return None
 
 # We accept formats:
@@ -883,33 +887,24 @@ def _userTimeStrFromMark(timeMark):
     # It's either a year or an error here.
     return timeMark
   else:
-    print "ruh roh: unrecognized userTimeMode %s" % _userTimeMode
+    print("ruh roh: unrecognized userTimeMode %s" % _userTimeMode)
   return timeMark
 
 # input functions
 # ===============
 
 def _getch():
-  fd = sys.stdin.fileno()
 
-  oldterm = termios.tcgetattr(fd)
-  newattr = termios.tcgetattr(fd)
-  newattr[3] = newattr[3] & ~termios.ICANON & ~termios.ECHO
-  termios.tcsetattr(fd, termios.TCSANOW, newattr)
-
-  oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
-  fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
-
-  try:        
-    while 1:            
-      try:
-        c = sys.stdin.read(1)
-        break
-      except IOError: pass
+  old_settings = termios.tcgetattr(0)
+  new_settings = old_settings[:]
+  new_settings[3] &= ~termios.ICANON & ~termios.ECHO
+  try:
+    termios.tcsetattr(0, termios.TCSANOW, new_settings)
+    ch = sys.stdin.read(1)
   finally:
-    termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
-    fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
-  return c
+    termios.tcsetattr(0, termios.TCSANOW, old_settings)
+  return ch
+
 
 # Main
 # ====
@@ -920,7 +915,7 @@ if __name__ ==  "__main__":
   try:
     handleArgs(sys.argv)
   except KeyboardInterrupt:
-    print "\nCheerio!"
+    print("\nCheerio!")
     exit(1)
   _saveConfig()
   # TODO HERE
