@@ -51,6 +51,7 @@
 import calendar
 import curses
 import datetime
+from datetime import timezone
 import fcntl
 import os
 import pickle
@@ -482,7 +483,7 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
   elif scope == "w":
     if _userTimeMode == 'Greg':
       ts = _timestampForMark(timeMark)
-      d = datetime.datetime.fromtimestamp(ts, datetime.UTC)
+      d = datetime.datetime.fromtimestamp(ts, timezone.utc)
       d1 = d + datetime.timedelta(days=(-1 * d.weekday()))
       d2 = d1 + datetime.timedelta(days=6)
       if d1.year != d2.year and d.year == d1.year: d2 = d1.replace(day=31)
@@ -496,7 +497,7 @@ def _fromDayToScope(timeMark, scope="d", inputMode=None):
   elif scope == "m":
     if _userTimeMode == 'Greg':
       ts = _timestampForMark(timeMark)
-      d = datetime.datetime.fromtimestamp(ts, datetime.UTC)
+      d = datetime.datetime.fromtimestamp(ts, timezone.utc)
       tm = d.timetuple()
       d1 = d + datetime.timedelta(days=(1 - tm.tm_mday))
       daysInMonth = calendar.monthrange(tm.tm_year, tm.tm_mon)[1]
