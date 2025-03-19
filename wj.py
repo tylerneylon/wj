@@ -56,8 +56,11 @@ import fcntl
 import os
 import pickle
 import re
+import subprocess
 import sys
+import tempfile
 import termios
+import textwrap
 import time
 import tty
 
@@ -90,16 +93,19 @@ def handleArgs(args):
   myName = sys.argv[0].split('/')[-1]
   usage = """%s [-dwmy] message...      # Add message for most recent day/week/month/year; default=day.
        %s -t <time> message...    # Add message for a given <time> (day/week/month/year).
+       %s -e <time>               # Edit the entry for <time> using $EDITOR (default=vim).
        %s -o <year> <filename>    # Output a tex file <filename> for the given <year>.
        %s -[r|l]                  # List <r>ecent, or <l>ist all, messages.
        %s                         # Run in interactive mode."""
-  usage = usage % (myName, myName, myName, myName, myName)
+  usage = usage % ((myName,) * 6)
   parser = OptionParser(usage=usage)
   parser.add_option("-o", action="store", type="string",
                     dest="outfile", nargs=2, metavar="<year> <filename>",
                     help="generate a tex file with recent messages")
   parser.add_option("-t", dest="userTimeMark", metavar="<time>",
                     help="add a message for the specified time unit")
+  parser.add_option("-e", dest="editTimeMark", metavar="<time>",
+                    help="use an external editor for the specified time's entry")
   parser.add_option("-r", dest="showRecent",
                     action="store_true",
                     help="show recent messages")
@@ -120,6 +126,10 @@ def handleArgs(args):
     return
   if options.showRecent:
     showMessages(8)
+    return
+  if options.editTimeMark:
+    mark = _markFromUserTimeStr(options.editTimeMark)
+    editMessage(mark)
     return
   if options.outfile:
     texString = texStringForYear(options.outfile[0])
@@ -166,6 +176,85 @@ def addMessage(msg, timeMark=None):
     timeMark = currentDefaultTimeMark()
   _setMessage(msg, timeMark)
 
+def editMessage(timeMark):
+  """ Edit a message using the user's preferred editor.
+  
+  Uses the $EDITOR environment variable if it exists, defaulting to vim.
+  Similar to `git commit`, the message will have a comment at the end indicating
+  which time mark it belongs to.
+  """
+  global _yearMessages
+  global _yearsLoaded
+  
+  if timeMark is None:
+    print("Error: Invalid time specification")
+    return
+    
+  # Load the year data if needed.
+  year = _yearFromTimeMark(timeMark)
+  if year not in _yearsLoaded:
+    _loadYear(year)
+  
+  # Get the current message or the empty string if it doesn't exist.
+  current_message = _yearMessages.get(timeMark, "")
+  
+  # Create a temporary file with the message.
+  comment = '''
+  # You're editing the entry for $TIME$.
+  #
+  # Save and close to commit your edits.
+  # Exit without saving to cancel your edits.
+  '''
+  with tempfile.NamedTemporaryFile(suffix=".txt", mode="w+", delete=False) as t:
+    t.write(current_message)
+    comment = textwrap.dedent(comment)
+    comment = comment.replace('$TIME$', _userStrForMark(timeMark))
+    t.write('\n\n' + comment)
+    temp_file_path = t.name
+  
+  # Find the editor to use.
+  editor = os.environ.get("EDITOR", "vim")
+  
+  try:
+    # Launch the editor.
+    cmd = [editor, temp_file_path]
+    if editor.endswith('vim'):
+        cmd.insert(1, '+set tw=0')
+    exit_code = subprocess.call(cmd)
+    
+    if exit_code != 0:
+      print("Editor exited with an error. Entry not updated.")
+      os.unlink(temp_file_path)
+      return
+    
+    # Read the edited content.
+    with open(temp_file_path, 'r') as file:
+      edited_content = file.read()
+    
+    # Remove comments and trailing whitespace.
+    edited_lines = []
+    for line in edited_content.splitlines():
+      if not line.strip().startswith('#'):
+        edited_lines.append(line.rstrip())
+    
+    new_message = '\n'.join(edited_lines).rstrip()
+    
+    # Update the message if it changed.
+    if new_message != current_message:
+      _setMessage(new_message, timeMark)
+      print('Updated entry:')
+      print(new_message)
+    else:
+      print("Entry unchanged.")
+      
+  except Exception as e:
+    print(f"Error editing entry: {e}")
+  finally:  # Clean up the temporary file.
+    try:
+      os.unlink(temp_file_path)
+    except:
+      pass
+
 def runInteractive(parser):
   print("Work Journal (wj)")
   markList, recentStr = recentMissingUserTimeStrs()
@@ -178,8 +267,8 @@ def runInteractive(parser):
   print(recentStr)
   print("---------------------------------")
   print("Actions: [d]ay entry; [w]eek; [m]onth; [y]ear; [a]ll missing")
-  print("         specify [t]ime; [o]utput; [h]elp; [q]uit.")
-  print("What would you like to do? [dwmyatohq]")
+  print("         specify [t]ime; open [e]ditor; [o]utput; [h]elp; [q]uit.")
+  print("What would you like to do? [dwmyateohq]")
   actionChar = _getch()
   messageChars = ['d', 'w', 'm', 'y']
   if actionChar in messageChars:
@@ -190,6 +279,24 @@ def runInteractive(parser):
   elif actionChar == 't':
     print("Today is %s" % _userDateForTime())
     getUserTimeStrAndMessage()
+  elif actionChar == 'e':
+    print("Today is %s" % _userDateForTime())
+    if _userTimeMode == '7date':
+      print(
+              "Formats: 123.2025 (day), 12-.2025 (week), 1--.2025 (month), " +
+              "2025 (year)"
+      )
+    else:
+      print(
+              "Formats: 1/30/99 or 30 Jan 1999 (day), <day> - <day> (week), " +
+              "Jan 1999 (month), 1999 (year)"
+      )
+    userTimeStr = input("Enter time to edit: ")
+    timeMark = _markFromUserTimeStr(userTimeStr)
+    if timeMark:
+      editMessage(timeMark)
+    else:
+      print("Couldn't parse that time.")
   elif actionChar == 'a':
     getAllRecentMissingMessages()
   elif actionChar == 'o':
